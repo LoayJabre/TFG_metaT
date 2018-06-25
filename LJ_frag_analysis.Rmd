@@ -1,0 +1,236 @@
+---
+title: "LJ_Frag_analysis"
+author: "Loay Jabre"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+Date Last Editted:    
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+#this displays the date this file was written 
+Sys.time()
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE, results='hide'}
+library(ggplot2)
+library(dplyr)
+library(plyr)
+library(gplots)
+library(heatmap.plus)
+library(RColorBrewer)
+library(dplyr)
+library(reshape2)
+library(scales)
+library(calibrate)
+library(tidyr)
+```
+
+need to figure out how to plot the top 10% or something liek that 
+need to know how to plot specific ones 
+
+Need to put proteins in groups depending on where they are in cells or organelles 
+
+Figure out a way to plot things that show biggest change, regardless of what they are 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#heatmap function
+heatmap <- function (group, dataset, proteinname){
+  group <- dplyr::filter (dataset, grepl(proteinname, name))
+  group <- data.frame(group[,-1], row.names = group [,1])
+  group <- as.matrix ((group))
+  
+  heatmap.2 (group, trace = "none", density = "none", col = bluered(100), cexRow = 0.8 , cexCol =0.7, margins = c(4,12), scale = "row")}
+
+#heatmap unclustered function
+heatmap_unclustered <- function (group, dataset, proteinname){
+  group <- dplyr::filter (dataset, grepl(proteinname, name))
+  group <- data.frame(group[,-1], row.names = group [,1])
+  group <- as.matrix ((group))
+  
+  heatmap.2 (group, trace = "none", density = "none", col = bluered(100), cexRow = 0.8 , cexCol =1, margins = c(8,9), scale = "row" , dendrogram = 'none',  Colv = FALSE, Rowv = FALSE)
+  }
+#heatmapfunction: group = group of proteins we want to work with
+#dataset = which dataset we are using (typically one that has been cleaned)
+#proteinname = whatever proteins we want to use
+```
+
+Analysis by ORF   
+```{r message=FALSE, warning=FALSE, include=FALSE}
+#Import dataset
+ORF <- read.csv("ORF.csv", header = TRUE, sep = ",")
+
+#removing unwanted columns
+ORF1 <- ORF [-c(1:4, 6,7, 10:12, 15:21, 23:26, 28, 30:34, 35:58, 83:106) ]
+
+#Combine all names into one row 
+ORF1$name <- paste(ORF1$kegg_desc, ORF1$KO_desc, ORF1$KO_pathway, ORF1$KOG_desc, ORF1$KOG_class, ORF1$best_hit_annotation, ORF1$PFams_desc, ORF1$TIGRFams_desc)
+
+#delete the rows of the different names
+ORF2 <- ORF1 [-c(1:8)]
+
+#move the name column into the front of the dataset
+ORF2 <- ORF2 [c(25, 1:24)]
+
+
+#make all descriptions unique
+ORF2$name <- sub('[.]', '_', make.names(ORF2$name, unique = TRUE))
+
+#change column names to treatment names to make more sense 
+ names(ORF2)<- c("name", "A_B12_0.5", "B_B12_0.5", "C_B12_0.5", "A_B12Fe_0.5", "B_B12Fe_0.5", "C_B12Fe_0.5", "A_0.5", "B_0.5", "C_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_3", "B_3", "C_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_6", "B_6", "C_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+ 
+ORFnoB12 <- ORF2 [-c(2:7)]
+```
+
+Flavodoxin
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+flavodoxin <- dplyr::filter (ORF2, grepl('flavodoxin|Flavodoxin', name))
+
+heatmap(iron, ORF2, 'flavodoxin')
+
+heatmap_unclustered(iron, ORF2, 'flavodoxin') 
+
+```
+
+
+HeatShock
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+heatshock <- dplyr::filter (ORF2, grepl('HSP90', name))
+
+heatmap_unclustered(iron, ORF2, 'PF00011')
+
+heatmap(iron, ORF2, 'PF00011')
+
+heatmap(iron, ORF2, 'HSP20')
+```
+
+
+
+Cold
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+Antifreeze <- dplyr::filter (ORF2, grepl('cold.shock', name))
+Antifreeze2 <- dplyr::filter (Antifreeze, grepl('X_', name))
+Antifreeze3 = melt(data = Antifreeze2, id.vars = "name", measure.vars = c(2:25))
+
+heatmap_unclustered(iron, ORF2, 'PF11999')
+
+heatmap(iron, ORF2, 'PF11999')
+
+heatmap_unclustered(iron, Antifreeze, 'X_')
+
+heatmap(iron, Antifreeze, 'X_')
+
+ggplot(Antifreeze3, aes(x=variable, y=value))+
+  geom_point()+
+  xlab ("Treatmet")+
+  ggtitle("Antifreeze proteins")+
+ theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x = element_text(angle = 25, vjust = 1.0, hjust = 1.0))
+
+heatmap(ORF2, ORF2, 'Fba3')
+
+
+
+```
+
+Rubisco
+```{r}
+
+Rubisco <- dplyr::filter (ORF2, grepl('RBL', name))
+
+heatmap_unclustered(ORF2, ORF2, 'RBL')
+```
+
+B12
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+B12 <- dplyr::filter (ORF2, grepl('independent', name))
+
+heatmap_unclustered(group, ORF2, 'METH|metH')
+
+heatmap(iron, ORF2, 'METH|metH')
+
+heatmap(iron, ORF2, 'Cobalamin.independent')
+
+```
+
+Nitrate/Nitrite
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+Nitr <- dplyr::filter (ORF2, grepl('nitrate|Nitrate|nitrite|Nitrite', name))
+
+heatmap(group, ORF2, 'NIR')
+
+heatmap_unclustered(group, ORF2, 'NIR_2')
+
+```
+
+Photosystem_II
+psbY : manganese binding protein of PSII
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+heatmap(chloro, ORF2, 'Photosystem_II|photosystem_II|PSII|photosystemII')
+
+heatmap(chloro, ORF2, 'PsbA')
+
+heatmap(chloro, ORF2, 'PsbY')
+
+heatmap(chloro, ORF2, 'PsbD')
+
+heatmap(chloro, ORF2, 'PsbO')
+
+heatmap(chloro, ORF2, 'CP47')
+
+```
+
+Cytochrome
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+heatmap_unclustered(chloro, ORF2, 'b6f')
+```
+
+Photosystem_I
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+heatmap(chloro, ORF2, 'PsaA')
+
+heatmap(chloro, ORF2, 'PsaB')
+
+heatmap(chloro, ORF2, 'PsaE')
+
+heatmap(chloro, ORF2, 'CLPC')
+
+```
+
+ISIP
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+heatmap(chloro, ORF2, 'ISIP')
+
+heatmap(chloro, ORF2, 'ISIP1')
+
+heatmap_unclustered(chloro, ORF2, 'ISIP1')
+
+heatmap(chloro, ORF2, 'ISIP2')
+
+heatmap_unclustered(chloro, ORF2, 'ISIP3')
+
+heatmap(chloro, ORF2, 'ISIP3')
+
+
+```
+
+Pigments
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+pigment <- dplyr::filter (ORF2, grepl('fucoxanthin', name))
+
+heatmap_unclustered(chloro, ORF2, 'fucoxanthin')
+
+heatmap(chloro, ORF2, 'fucoxanthin')
+
+heatmap(chloro, pigment, 'Lhcf4')
+
+heatmap_unclustered(chloro, pigment, 'Lhcf16')
+
+heatmap_unclustered(chloro, pigment, 'Lhcx2')
+
+```
