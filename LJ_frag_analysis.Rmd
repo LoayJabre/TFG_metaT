@@ -25,7 +25,7 @@ library(scales)
 library(calibrate)
 library(tidyr)
 
-
+#I have a R script in this W.D.  with all my functions, so all I do is call the functions from that R.Script into here
 source("fragtranscript_functions.R")
 
 ```
@@ -58,9 +58,180 @@ ORF2$name <- sub('[.]', '_', make.names(ORF2$name, unique = TRUE))
 #change column names to treatment names to make more sense 
  names(ORF2)<- c("name", "A_T0", "B_T0", "C_T0", "A_B12_0.5", "B_B12_0.5", "C_B12_0.5", "A_B12Fe_0.5", "B_B12Fe_0.5", "C_B12Fe_0.5", "A_0.5", "B_0.5", "C_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_3", "B_3", "C_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_6", "B_6", "C_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
  
-ORFnoB12 <- ORF2 [-c(2:7)]
-ORFerin <- ORF2 [-c(17:28)]
+#ORFnoB12 <- ORF2 [-c(5:10)]
+#ORFlowtemp <- ORF2 [-c(17:28)]
 ```
+
+
+Flavodoxin
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+#this creates a new dataframe from ORF2 only for flavodoxin. Don't really need this unless you want to look into the data. heatmpa does not use longformat data. 
+flavodoxin <- dplyr::filter (ORF2, grepl('flavodoxin|Flavodoxin', name))
+
+#this uses the heatmap function created in the functions file to plot heatmaps
+heatmap(data, ORF2, 'flavodoxin')
+heatmap_unclustered(data, ORF2, 'flavodoxin') 
+
+#create long format from of flavodoxin to plot with ggplot. it 
+flavodoxinmelt <-  melt (data = flavodoxin,id.vars = "name", measure.vars = c(2:28)) 
+
+xyplot(flavodoxinmelt,"flavodoxin")
+
+```
+
+
+HeatShock
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+heatshock <- dplyr::filter (ORF2, grepl('HSP90', name))
+
+heatmap_unclustered(iron, ORF2, 'PF00011')
+heatmap(iron, ORF2, 'PF00011')
+heatmap(iron, ORF2, 'HSP20')
+```
+
+
+Cold
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+Antifreeze <- dplyr::filter (ORF2, grepl('cold.shock', name))
+Antifreeze2 <- dplyr::filter (Antifreeze, grepl('X_', name))
+antifreezemelt <- melt(data = Antifreeze2, id.vars = "name", measure.vars = c(2:25))
+
+heatmap_unclustered(iron, ORF2, 'PF11999')
+heatmap(iron, ORF2, 'PF11999')
+heatmap_unclustered(iron, Antifreeze, 'X_')
+heatmap(iron, Antifreeze, 'X_')
+heatmap(ORF2, ORF2, 'Fba3')
+
+xyplot (antifreezemelt, "Antifreeze")
+
+
+
+```
+
+Rubisco
+```{r}
+
+Rubisco <- dplyr::filter (ORF2, grepl('RBL', name))
+
+heatmap_unclustered(ORF2, ORF2, 'RBL')
+```
+
+B12
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+B12 <- dplyr::filter (ORF2, grepl('independent', name))
+
+heatmap_unclustered(group, ORF2, 'METH|metH')
+heatmap(iron, ORF2, 'METH|metH')
+heatmap(iron, ORF2, 'Cobalamin.independent')
+
+B12melt <-  melt (data = B12,id.vars = "name", measure.vars = c(2:28)) 
+
+xyplot(B12melt, "B12", 0.001)
+```
+
+Nitrate/Nitrite
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+Nitr <- dplyr::filter (ORF2, grepl('nitrate|Nitrate|nitrite|Nitrite', name))
+
+heatmap(group, ORF2, 'NIR')
+
+heatmap_unclustered(group, ORF2, 'NIR_2')
+
+```
+
+Photosystem_II
+psbY : manganese binding protein of PSII
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+heatmap(chloro, ORF2, 'Photosystem_II|photosystem_II|PSII|photosystemII')
+
+heatmap(chloro, ORF2, 'PsbA')
+
+heatmap(chloro, ORF2, 'PsbY')
+
+heatmap(chloro, ORF2, 'PsbD')
+
+heatmap(chloro, ORF2, 'PsbO')
+
+heatmap(chloro, ORF2, 'CP47')
+
+```
+
+Cytochrome
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+heatmap_unclustered(chloro, ORF2, 'b6f')
+```
+
+Photosystem_I
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+heatmap(chloro, ORF2, 'PsaA')
+
+heatmap(chloro, ORF2, 'PsaB')
+
+heatmap(chloro, ORF2, 'PsaE')
+
+heatmap(chloro, ORF2, 'CLPC')
+
+```
+
+ISIP
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+heatmap(chloro, ORF2, 'ISIP')
+
+heatmap(chloro, ORF2, 'ISIP1')
+
+heatmap_unclustered(chloro, ORF2, 'ISIP1')
+
+heatmap(chloro, ORF2, 'ISIP2')
+
+heatmap_unclustered(chloro, ORF2, 'ISIP3')
+
+heatmap(chloro, ORF2, 'ISIP3')
+
+
+```
+
+Pigments
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+pigment <- dplyr::filter (ORF2, grepl('fucoxanthin', name))
+
+heatmap_unclustered(chloro, ORF2, 'fucoxanthin')
+
+heatmap(chloro, ORF2, 'fucoxanthin')
+
+heatmap(chloro, pigment, 'Lhcf4')
+
+heatmap_unclustered(chloro, pigment, 'Lhcf16')
+
+heatmap_unclustered(chloro, pigment, 'Lhcx2')
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 Erin's figure
@@ -167,234 +338,6 @@ ggplot(CBAmelt, aes(x=variable, y=value ))+
 ```
 
 
-
-
-
-
-
-Flavodoxin
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-
-flavodoxin <- dplyr::filter (ORF2, grepl('flavodoxin', name))
-heatmap(iron, ORF2, 'flavodoxin|Flavodoxin')
-heatmap_unclustered(iron, ORF2, 'flavodoxin') 
-
-flavodoxinmelt <-  melt (data = flavodoxin,id.vars = "name", measure.vars = c(2:28)) 
-
-ggplot(flavodoxinmelt, aes(x=variable, y=value ))+
-  geom_point()+
-  geom_line (aes(group=name))+
-  xlab ("Treatmet")+
-  ggtitle("Flavodoxin")+
- theme_bw()+
-  theme(plot.title = element_text(hjust = 0.5))+
-  theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))
-
-
-
-ggplot(flavodoxinmelt, aes(x=variable, y=value ))+
-  geom_point(aes(alpha =0.003))+
-  stat_summary(fun.data = mean_cl_normal, geom = "point", colour = "red", width = 0.5)+
-  xlab ("Treatmet")+
-  ggtitle("Flavodoxin")+
- theme_bw()+
-  theme(plot.title = element_text(hjust = 0.5))+
-  theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))
-
-
-ggplot(flavodoxinmelt, aes(x=variable, y=value, colour = name ))+
-  geom_point(alpha=0.9)+
-  stat_summary(fun.y = mean, geom = "line", colour = "red", group =1, size = 1)+
-    stat_summary(fun.data =  mean_se, geom = "errorbar", colour = "black")+
-  xlab ("Treatmet")+
-  ggtitle("Flavodoxin")+
- theme_bw()+
-  theme(plot.title = element_text(hjust = 0.5))+
-  theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
-  theme(legend.position = "none")
-
-
-
-ggplot(flavodoxinmelt, aes(x=variable, y=value, colour = name ))+
-  geom_line(aes(group=name,alpha=0.9))+
-  stat_summary(fun.y = mean, geom = "line", colour = "red", group =1, size = 1)+
-    stat_summary(fun.data =  mean_se, geom = "errorbar", colour = "black")+
-  xlab ("Treatmet")+
-  ggtitle("Flavodoxin")+
- theme_bw()+
-  theme(plot.title = element_text(hjust = 0.5))+
-  theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
-  theme(legend.position = "none")
-
-```
-
-
-HeatShock
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-
-heatshock <- dplyr::filter (ORF2, grepl('HSP90', name))
-
-heatmap_unclustered(iron, ORF2, 'PF00011')
-
-heatmap(iron, ORF2, 'PF00011')
-
-heatmap(iron, ORF2, 'HSP20')
-```
-
-
-
-Cold
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-Antifreeze <- dplyr::filter (ORF2, grepl('cold.shock', name))
-Antifreeze2 <- dplyr::filter (Antifreeze, grepl('X_', name))
-Antifreeze3 = melt(data = Antifreeze2, id.vars = "name", measure.vars = c(2:25))
-
-heatmap_unclustered(iron, ORF2, 'PF11999')
-
-heatmap(iron, ORF2, 'PF11999')
-
-heatmap_unclustered(iron, Antifreeze, 'X_')
-
-heatmap(iron, Antifreeze, 'X_')
-
-ggplot(Antifreeze3, aes(x=variable, y=value))+
-  geom_point()+
-  xlab ("Treatmet")+
-  ggtitle("Antifreeze proteins")+
- theme_bw()+
-  theme(plot.title = element_text(hjust = 0.5))+
-  theme(axis.text.x = element_text(angle = 25, vjust = 1.0, hjust = 1.0))
-
-heatmap(ORF2, ORF2, 'Fba3')
-
-
-
-```
-
-Rubisco
-```{r}
-
-Rubisco <- dplyr::filter (ORF2, grepl('RBL', name))
-
-heatmap_unclustered(ORF2, ORF2, 'RBL')
-```
-
-B12
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-B12 <- dplyr::filter (ORF2, grepl('independent', name))
-
-heatmap_unclustered(group, ORF2, 'METH|metH')
-heatmap(iron, ORF2, 'METH|metH')
-heatmap(iron, ORF2, 'Cobalamin.independent')
-
-
-
-B12melt <-  melt (data = B12,id.vars = "name", measure.vars = c(2:28)) 
-
-ggplot(B12melt, aes(x=variable, y=value, colour = name ))+
-  geom_line(aes(group=name,alpha=0.9))+
-  stat_summary(fun.y = mean, geom = "line", colour = "red", group =1, size = 1)+
-    stat_summary(fun.data =  mean_se, geom = "errorbar", colour = "black")+
-  xlab ("Treatmet")+
-  ggtitle("Flavodoxin")+
- theme_bw()+
-  theme(plot.title = element_text(hjust = 0.5))+
-  theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
-  theme(legend.position = "none")
-
-
-ggplot(B12melt, aes(x=variable, y=value, colour = name ))+
-  geom_point(aes(group=name,alpha=0.9))+
-  geom_line(aes(group=name,alpha=0.9))+
-  stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.5)+
-   stat_summary(fun.data = mean_se, geom = "errorbar", colour = "black")+
-  xlab ("Treatmet")+
-  ggtitle("MetE")+
- theme_bw()+
-  theme(plot.title = element_text(hjust = 0.5))+
-  theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
-  theme(legend.position = "none")+
-  scale_y_continuous(limits = c(0,0.001))
-```
-
-Nitrate/Nitrite
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-Nitr <- dplyr::filter (ORF2, grepl('nitrate|Nitrate|nitrite|Nitrite', name))
-
-heatmap(group, ORF2, 'NIR')
-
-heatmap_unclustered(group, ORF2, 'NIR_2')
-
-```
-
-Photosystem_II
-psbY : manganese binding protein of PSII
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-heatmap(chloro, ORF2, 'Photosystem_II|photosystem_II|PSII|photosystemII')
-
-heatmap(chloro, ORF2, 'PsbA')
-
-heatmap(chloro, ORF2, 'PsbY')
-
-heatmap(chloro, ORF2, 'PsbD')
-
-heatmap(chloro, ORF2, 'PsbO')
-
-heatmap(chloro, ORF2, 'CP47')
-
-```
-
-Cytochrome
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-heatmap_unclustered(chloro, ORF2, 'b6f')
-```
-
-Photosystem_I
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-heatmap(chloro, ORF2, 'PsaA')
-
-heatmap(chloro, ORF2, 'PsaB')
-
-heatmap(chloro, ORF2, 'PsaE')
-
-heatmap(chloro, ORF2, 'CLPC')
-
-```
-
-ISIP
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-
-heatmap(chloro, ORF2, 'ISIP')
-
-heatmap(chloro, ORF2, 'ISIP1')
-
-heatmap_unclustered(chloro, ORF2, 'ISIP1')
-
-heatmap(chloro, ORF2, 'ISIP2')
-
-heatmap_unclustered(chloro, ORF2, 'ISIP3')
-
-heatmap(chloro, ORF2, 'ISIP3')
-
-
-```
-
-Pigments
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-
-pigment <- dplyr::filter (ORF2, grepl('fucoxanthin', name))
-
-heatmap_unclustered(chloro, ORF2, 'fucoxanthin')
-
-heatmap(chloro, ORF2, 'fucoxanthin')
-
-heatmap(chloro, pigment, 'Lhcf4')
-
-heatmap_unclustered(chloro, pigment, 'Lhcf16')
-
-heatmap_unclustered(chloro, pigment, 'Lhcx2')
-
-```
 
 
 
