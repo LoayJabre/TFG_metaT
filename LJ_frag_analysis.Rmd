@@ -24,36 +24,16 @@ library(reshape2)
 library(scales)
 library(calibrate)
 library(tidyr)
+
+
+source("fragtranscript_functions.R")
+
 ```
 
 need to figure out how to plot the top 10% or something liek that 
 need to know how to plot specific ones 
-
 Need to put proteins in groups depending on where they are in cells or organelles 
-
 Figure out a way to plot things that show biggest change, regardless of what they are 
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-#heatmap function
-heatmap <- function (group, dataset, proteinname){
-  group <- dplyr::filter (dataset, grepl(proteinname, name))
-  group <- data.frame(group[,-1], row.names = group [,1])
-  group <- as.matrix ((group))
-  
-heatmap.2 (group, trace = "none", density = "none", col = bluered(100), cexRow = 0.8 , cexCol =0.8, margins = c(5,12), scale = "row")}
-
-#heatmap unclustered function
-heatmap_unclustered <- function (group, dataset, proteinname){
-  group <- dplyr::filter (dataset, grepl(proteinname, name))
-  group <- data.frame(group[,-1], row.names = group [,1])
-  group <- as.matrix ((group))
-  
-  heatmap.2 (group, trace = "none", density = "none", col = bluered(100), cexRow = 0.8 , cexCol =1, margins = c(8,9), scale = "row" , dendrogram = 'none',  Colv = FALSE, Rowv = FALSE)
-  }
-#heatmapfunction: group = group of proteins we want to work with
-#dataset = which dataset we are using (typically one that has been cleaned)
-#proteinname = whatever proteins we want to use
-```
 
 Analysis by ORF   
 ```{r message=FALSE, warning=FALSE, include=FALSE}
@@ -79,7 +59,7 @@ ORF2$name <- sub('[.]', '_', make.names(ORF2$name, unique = TRUE))
  names(ORF2)<- c("name", "A_T0", "B_T0", "C_T0", "A_B12_0.5", "B_B12_0.5", "C_B12_0.5", "A_B12Fe_0.5", "B_B12Fe_0.5", "C_B12Fe_0.5", "A_0.5", "B_0.5", "C_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_3", "B_3", "C_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_6", "B_6", "C_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
  
 ORFnoB12 <- ORF2 [-c(2:7)]
-#ORFerin <- ORF2 [-c(17:28)]
+ORFerin <- ORF2 [-c(17:28)]
 ```
 
 
