@@ -76,7 +76,7 @@ heatmap_unclustered(data, ORF2, 'flavodoxin')
 #create long format from of flavodoxin to plot with ggplot. it 
 flavodoxinmelt <-  melt (data = flavodoxin,id.vars = "name", measure.vars = c(2:28)) 
 
-xyplot(flavodoxinmelt,"flavodoxin")
+xyplot(flavodoxinmelt,"flavodoxin", 0.001)
 
 ```
 
