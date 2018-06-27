@@ -5,7 +5,6 @@ output: html_document
 editor_options: 
   chunk_output_type: console
 ---
-
 Date Last Editted:    
 ```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
 #this displays the date this file was written 
@@ -30,7 +29,7 @@ source("fragtranscript_functions.R")
 
 ```
 
-need to figure out how to plot the top 10% or something liek that 
+need to figure out how to plot the top 10% or something like that 
 need to know how to plot specific ones 
 Need to put proteins in groups depending on where they are in cells or organelles 
 Figure out a way to plot things that show biggest change, regardless of what they are 
@@ -58,6 +57,7 @@ ORF2$name <- sub('[.]', '_', make.names(ORF2$name, unique = TRUE))
 #change column names to treatment names to make more sense 
  names(ORF2)<- c("name", "A_T0", "B_T0", "C_T0", "A_B12_0.5", "B_B12_0.5", "C_B12_0.5", "A_B12Fe_0.5", "B_B12Fe_0.5", "C_B12Fe_0.5", "A_0.5", "B_0.5", "C_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_3", "B_3", "C_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_6", "B_6", "C_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
  
+
 #ORFnoB12 <- ORF2 [-c(5:10)]
 #ORFlowtemp <- ORF2 [-c(17:28)]
 ```
@@ -78,6 +78,45 @@ flavodoxinmelt <-  melt (data = flavodoxin,id.vars = "name", measure.vars = c(2:
 
 xyplot(flavodoxinmelt,"flavodoxin", 0.001)
 
+hist(flavodoxin$C_6, breaks = 800, xlim = c(0,0.005))
+
+
+
+
+ggplot(flavodoxinmelt, aes(x=variable, y=value, colour = name ))+
+    geom_point(alpha=0.9)+
+    stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.5)+
+    xlab ("Treatmet")+
+    ggtitle("title")+
+    theme_bw()+
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
+    theme(legend.position = "none")+
+scale_y_log10()
+
+flavodoxin$T0 <- rowMeans( flavodoxin[ , c(2:4)] ) 
+
+
+colname <- "randoooom"
+
+flavodoxin[[colname]] <- rowMeans( flavodoxin[ , c(2:4)] ) 
+
+## creating a loop to do averages of the treatements 
+
+#first, creat loop variable that will count upwards / run the loop
+i=0
+#i<9 is how many time we want the loop to work (loop condition)/while the loop condition is true, the stuff in the curly brackets will happen . 
+while (i < 9){
+  #the paste function takes two strings and concatenates them together, this so each column has a different name
+  colname <- paste(colname, i)
+  #calculating which columns to use, with the scale factor of i (so, for the fit average, it will calculate the average of the first 3 columns etc)
+  col1 = 2+(i*3)
+  col2 = 4+(i*3)
+  #creating the mean
+  flavodoxin[[colname]] <- rowMeans( flavodoxin[, c(col1:col2)] ) 
+  #weadd 1 to the loop so the loop doesn't go forever
+  i <- i+1
+}
 ```
 
 
@@ -105,9 +144,6 @@ heatmap(iron, Antifreeze, 'X_')
 heatmap(ORF2, ORF2, 'Fba3')
 
 xyplot (antifreezemelt, "Antifreeze")
-
-
-
 ```
 
 Rubisco
