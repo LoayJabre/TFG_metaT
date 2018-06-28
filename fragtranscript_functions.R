@@ -40,7 +40,7 @@ xyplot <- function(dataset,title, yzoom){
   
 #log(10) of y-values because of large spread in values
   print(ggplot(dataset, aes(x=variable, y=value, colour = name ))+
-    geom_line(aes(group=name,alpha=0.9))+
+    geom_point(alpha=0.9)+
     stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.5)+
     stat_summary(fun.data =  mean_se, geom = "errorbar", colour = "black")+
     xlab ("Treatmet")+
@@ -49,13 +49,12 @@ xyplot <- function(dataset,title, yzoom){
     theme_bw()+
     theme(plot.title = element_text(hjust = 0.5))+
     theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
-    theme(legend.position = "none")+
-    scale_y_log10())
-  
+    scale_y_log10()+
+    theme(legend.position = "none"))
+
 #zooming in a little 
-  ggplot(dataset, aes(x=variable, y=value, colour = name ))+
+  print(ggplot(dataset, aes(x=variable, y=value, colour = name ))+
     geom_point(aes(group=name,alpha=0.9))+
-    geom_line(aes(group=name,alpha=0.9))+
     stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.5)+
     stat_summary(fun.data = mean_se, geom = "errorbar", colour = "black")+
     xlab ("Treatmet")+
@@ -63,10 +62,40 @@ xyplot <- function(dataset,title, yzoom){
     theme_bw()+
     theme(plot.title = element_text(hjust = 0.5))+
     theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
-    theme(legend.position = "none")+
-    scale_y_continuous(limits = c(0,yzoom))
-       } 
+    scale_y_continuous(limits = c(0,yzoom))+
+    theme(legend.position = "none"))
+} 
 
+
+
+#this function creates subsets of the flavodoxin data and plots them as needed 
+#the loop creates means of the three treatments
+fixdata <- function(dataset, proteinname, title, title2){
+  heatmap_unclustered(data, dataset, proteinname)
+  
+  datasetmelt <-  melt (data = dataset,id.vars = "name", measure.vars = c(2:28))
+  xyplot(datasetmelt,title, 0.001)
+  
+  colname <- "mean"
+  i=0
+  while (i < 9){
+    colname <- paste(colname, i)
+    col1 = 2+(i*3)
+    col2 = 4+(i*3)
+    dataset[[colname]] <- rowMeans( dataset[, c(col1:col2)] ) 
+    i <- i+1
+  }
+  
+  datasetmean <- dataset [-c(2:28)]
+  names(datasetmean) <- c("name", "T0", "B12_0.5C", "Fe_B12_0.5C","0.5C", "Fe_0.5C", "3C", "Fe_3C", "6C", "Fe_6C" )
+  
+  heatmap_unclustered(data, datasetmean, proteinname)
+  
+  datasetmeanmelt <-  melt (data = datasetmean,id.vars = "name", measure.vars = c(2:10)) 
+  
+  xyplot(datasetmeanmelt,title2, 0.002)
+  
+}
 
 
 

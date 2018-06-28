@@ -29,11 +29,6 @@ source("fragtranscript_functions.R")
 
 ```
 
-need to figure out how to plot the top 10% or something like that 
-need to know how to plot specific ones 
-Need to put proteins in groups depending on where they are in cells or organelles 
-Figure out a way to plot things that show biggest change, regardless of what they are 
-
 Analysis by ORF   
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 #Import dataset
@@ -63,108 +58,57 @@ ORF2$name <- sub('[.]', '_', make.names(ORF2$name, unique = TRUE))
 ```
 
 
-Flavodoxin
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-
-#this creates a new dataframe from ORF2 only for flavodoxin. Don't really need this unless you want to look into the data. heatmpa does not use longformat data. 
-flavodoxin <- dplyr::filter (ORF2, grepl('flavodoxin|Flavodoxin', name))
-
-#this uses the heatmap function created in the functions file to plot heatmaps
-heatmap(data, ORF2, 'flavodoxin')
-heatmap_unclustered(data, ORF2, 'flavodoxin') 
-
-#create long format from of flavodoxin to plot with ggplot. it 
-flavodoxinmelt <-  melt (data = flavodoxin,id.vars = "name", measure.vars = c(2:28)) 
-
-xyplot(flavodoxinmelt,"flavodoxin", 0.001)
-
-hist(flavodoxin$C_6, breaks = 800, xlim = c(0,0.005))
-
-
-
-
-ggplot(flavodoxinmelt, aes(x=variable, y=value, colour = name ))+
-    geom_point(alpha=0.9)+
-    stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.5)+
-    xlab ("Treatmet")+
-    ggtitle("title")+
-    theme_bw()+
-    theme(plot.title = element_text(hjust = 0.5))+
-    theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
-    theme(legend.position = "none")+
-scale_y_log10()
-
-flavodoxin$T0 <- rowMeans( flavodoxin[ , c(2:4)] ) 
-
-
-colname <- "randoooom"
-
-flavodoxin[[colname]] <- rowMeans( flavodoxin[ , c(2:4)] ) 
-
-## creating a loop to do averages of the treatements 
-
-#first, creat loop variable that will count upwards / run the loop
-i=0
-#i<9 is how many time we want the loop to work (loop condition)/while the loop condition is true, the stuff in the curly brackets will happen . 
-while (i < 9){
-  #the paste function takes two strings and concatenates them together, this so each column has a different name
-  colname <- paste(colname, i)
-  #calculating which columns to use, with the scale factor of i (so, for the fit average, it will calculate the average of the first 3 columns etc)
-  col1 = 2+(i*3)
-  col2 = 4+(i*3)
-  #creating the mean
-  flavodoxin[[colname]] <- rowMeans( flavodoxin[, c(col1:col2)] ) 
-  #weadd 1 to the loop so the loop doesn't go forever
-  i <- i+1
-}
+```{r}
+fixdatafunction: 
+  
 ```
 
+
+Flavodoxin
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+flavodoxin <- dplyr::filter (ORF2, grepl('flavodoxin|Flavodoxin', name))
+fixdata(flavodoxin, 'flavodoxin', "flavodoxin", "flavodoxinmean")
+  
+```
 
 HeatShock
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+heatshock <- dplyr::filter (ORF2, grepl('PF00011', name))
+fixdata(heatshock, 'PF00011', "heatshock", "heatshockmean")
 
-heatshock <- dplyr::filter (ORF2, grepl('HSP90', name))
-
-heatmap_unclustered(iron, ORF2, 'PF00011')
-heatmap(iron, ORF2, 'PF00011')
-heatmap(iron, ORF2, 'HSP20')
 ```
-
 
 Cold
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-Antifreeze <- dplyr::filter (ORF2, grepl('cold.shock', name))
-Antifreeze2 <- dplyr::filter (Antifreeze, grepl('X_', name))
-antifreezemelt <- melt(data = Antifreeze2, id.vars = "name", measure.vars = c(2:25))
+antifreeze <- dplyr::filter (ORF2, grepl('cold.shock', name))
 
-heatmap_unclustered(iron, ORF2, 'PF11999')
-heatmap(iron, ORF2, 'PF11999')
-heatmap_unclustered(iron, Antifreeze, 'X_')
-heatmap(iron, Antifreeze, 'X_')
-heatmap(ORF2, ORF2, 'Fba3')
+fixdata(antifreeze, 'cold.shock', "cold", "coldmean")
 
-xyplot (antifreezemelt, "Antifreeze")
+
 ```
+
+
+
+
+
 
 Rubisco
 ```{r}
 
-Rubisco <- dplyr::filter (ORF2, grepl('RBL', name))
+rubisco <- dplyr::filter (ORF2, grepl('RBL', name))
+fixdata(rubisco, 'RBL', "Rubisco", "Rubiscomean")
 
-heatmap_unclustered(ORF2, ORF2, 'RBL')
 ```
 
 B12
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-B12 <- dplyr::filter (ORF2, grepl('independent', name))
+MetE <- dplyr::filter (ORF2, grepl('independent', name))
+fixdata(MetE, 'independent', "metE", "MetEmean")
 
-heatmap_unclustered(group, ORF2, 'METH|metH')
-heatmap(iron, ORF2, 'METH|metH')
-heatmap(iron, ORF2, 'Cobalamin.independent')
 
-B12melt <-  melt (data = B12,id.vars = "name", measure.vars = c(2:28)) 
+MetH  <- dplyr::filter (ORF2, grepl('MetH|metH', name))
+fixdata(MetH, 'metH|MetH', "metH", "MetHmean")
 
-xyplot(B12melt, "B12", 0.001)
 ```
 
 Nitrate/Nitrite
@@ -184,13 +128,19 @@ heatmap(chloro, ORF2, 'Photosystem_II|photosystem_II|PSII|photosystemII')
 
 heatmap(chloro, ORF2, 'PsbA')
 
-heatmap(chloro, ORF2, 'PsbY')
+heatmap_unclustered(chloro, ORF2, 'PsbY')
 
-heatmap(chloro, ORF2, 'PsbD')
+heatmap_unclustered(chloro, ORF2, 'PsbD')
 
 heatmap(chloro, ORF2, 'PsbO')
 
 heatmap(chloro, ORF2, 'CP47')
+
+
+PsbY <- dplyr::filter (ORF2, grepl('PsbO', name))
+
+fixdata(PsbY, 'PsbO', "PsbY", "PsbYmean")
+
 
 ```
 
@@ -201,9 +151,9 @@ heatmap_unclustered(chloro, ORF2, 'b6f')
 
 Photosystem_I
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-heatmap(chloro, ORF2, 'PsaA')
+heatmap_unclustered(chloro, ORF2, 'PsaA')
 
-heatmap(chloro, ORF2, 'PsaB')
+heatmap_unclustered(chloro, ORF2, 'PsaB')
 
 heatmap(chloro, ORF2, 'PsaE')
 
@@ -226,6 +176,9 @@ heatmap_unclustered(chloro, ORF2, 'ISIP3')
 
 heatmap(chloro, ORF2, 'ISIP3')
 
+
+ISIP1 <- dplyr::filter (ORF2, grepl('ISIP1', name))
+fixdata(ISIP1, 'ISIP1', "ISIP1", "ISIP1mean")
 
 ```
 
@@ -373,6 +326,128 @@ ggplot(CBAmelt, aes(x=variable, y=value ))+
   theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))
 ```
 
+
+
+```{r}
+ggplot(flavodoxinmeltmean, aes(x=variable, y=value, colour = name ))+
+    geom_point(alpha=0.9)+
+    stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.5)+
+    xlab ("Treatmet")+
+    ggtitle("title")+
+    theme_bw()+
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
+    theme(legend.position = "none")+
+scale_y_log10()
+
+```
+
+
+Flavodoxin Annotated
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#this creates a new dataframe from ORF2 only for flavodoxin. Don't really need this unless you want to look into the data. heatmpa does not use longformat data. 
+flavodoxin <- dplyr::filter (ORF2, grepl('flavodoxin|Flavodoxin', name))
+
+#this uses the heatmap function created in the functions file to plot heatmaps
+heatmap(data, ORF2, 'flavodoxin')
+heatmap_unclustered(data, ORF2, 'flavodoxin') 
+
+#create long format from of flavodoxin to plot with ggplot. it 
+flavodoxinmelt <-  melt (data = flavodoxin,id.vars = "name", measure.vars = c(2:28)) 
+
+xyplot(flavodoxinmelt,"flavodoxin", 0.001)
+
+#how to calculate a row mean 
+#flavodoxin$T0 <- rowMeans( flavodoxin[ , c(2:4)] ) 
+
+colname <- "mean"
+
+#flavodoxin[[colname]] <- rowMeans( flavodoxin[ , c(2:4)] ) 
+
+## creating a loop to do averages of the treatements 
+
+#first, creat loop variable that will count upwards / run the loop
+i=0
+#i<9 is how many time we want the loop to work (loop condition)/while the loop condition is true, the stuff in the curly brackets will happen
+while (i < 9){
+  #the paste function takes two strings and concatenates them together, this so each column has a different name
+  colname <- paste(colname, i)
+  #calculating which columns to use, with the scale factor of i (so, for the fit average, it will calculate the average of the first 3 columns etc)
+  col1 = 2+(i*3)
+  col2 = 4+(i*3)
+  #creating the mean
+  flavodoxin[[colname]] <- rowMeans( flavodoxin[, c(col1:col2)] ) 
+  #weadd 1 to the loop so the loop doesn't go forever
+  i <- i+1
+}
+
+flavodoxinmean <- flavodoxin [-c(2:28)]
+names(flavodoxinmean) <- c("name", "T0", "B12_0.5C", "Fe_B12_0.5C","0.5C", "Fe_0.5C", "3C", "Fe_3C", "6C", "Fe_6C" )
+
+heatmap_unclustered(data, flavodoxinmean, "flavodoxin")
+
+
+flavodoxinmeltmean <-  melt (data = flavodoxinmean,id.vars = "name", measure.vars = c(2:10)) 
+
+xyplot(flavodoxinmeltmean,"flavodoxin", 0.002)
+```
+
+
+
+HeatShock
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+heatshock <- dplyr::filter (ORF2, grepl('PF00011', name))
+
+heatmap_unclustered(iron, ORF2, 'PF00011')
+heatmap(iron, ORF2, 'PF00011')
+heatmap(iron, ORF2, 'HSP20')
+
+
+heatshockmelt <-  melt (data = heatshock,id.vars = "name", measure.vars = c(2:28)) 
+
+xyplot(heatshockmelt,"heatshock", 0.001)
+
+
+
+
+
+colname <- "mean"
+i=0
+while (i < 9){
+  colname <- paste(colname, i)
+  col1 = 2+(i*3)
+  col2 = 4+(i*3)
+  heatshock[[colname]] <- rowMeans( heatshock[, c(col1:col2)] ) 
+  i <- i+1
+}
+
+heatshockmean <- heatshock [-c(2:28)]
+names(heatshockmean) <- c("name", "T0", "B12_0.5C", "Fe_B12_0.5C","0.5C", "Fe_0.5C", "3C", "Fe_3C", "6C", "Fe_6C" )
+
+heatshockmeanmelt <-  melt (data = heatshockmean,id.vars = "name", measure.vars = c(2:10)) 
+
+xyplot(heatshockmeanmelt,"heatshockmean", 0.002)
+
+
+```
+
+
+
+Cold
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+Antifreeze <- dplyr::filter (ORF2, grepl('cold.shock', name))
+Antifreeze2 <- dplyr::filter (Antifreeze, grepl('X_', name))
+antifreezemelt <- melt(data = Antifreeze2, id.vars = "name", measure.vars = c(2:25))
+
+heatmap_unclustered(iron, ORF2, 'PF11999')
+heatmap(iron, ORF2, 'PF11999')
+heatmap_unclustered(iron, Antifreeze, 'X_')
+heatmap(iron, Antifreeze, 'X_')
+heatmap(ORF2, ORF2, 'Fba3')
+
+xyplot (antifreezemelt, "Antifreeze")
+```
 
 
 
