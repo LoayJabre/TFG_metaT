@@ -12,6 +12,8 @@ Sys.time()
 ```
 
 
+This is the annotated version of LJ_frag_analysis with explanations for all the codes etc. 
+
 ```{r message=FALSE, warning=FALSE, include=FALSE, results='hide'}
 library(ggplot2)
 library(dplyr)
@@ -428,6 +430,20 @@ ggplot(ISIPmelt, aes(x=variable, y=value, colour = name ))+
 
 
 
+Cold
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+Antifreeze <- dplyr::filter (ORF2, grepl('cold.shock', name))
+Antifreeze2 <- dplyr::filter (Antifreeze, grepl('X_', name))
+antifreezemelt <- melt(data = Antifreeze2, id.vars = "name", measure.vars = c(2:25))
+
+heatmap_unclustered(iron, ORF2, 'PF11999')
+heatmap(iron, ORF2, 'PF11999')
+heatmap_unclustered(iron, Antifreeze, 'X_')
+heatmap(iron, Antifreeze, 'X_')
+heatmap(ORF2, ORF2, 'Fba3')
+
+xyplot (antifreezemelt, "Antifreeze")
+```
 
 
 
@@ -767,6 +783,168 @@ scatterplot3d(antifreeze[13:15],
               angle = 50)
 
 ```
+
+
+
+HeatShock
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+heatshock <- dplyr::filter (ORF2, grepl('PF00011', name))
+
+heatmap_unclustered(iron, ORF2, 'PF00011')
+heatmap(iron, ORF2, 'PF00011')
+heatmap(iron, ORF2, 'HSP20')
+
+
+heatshockmelt <-  melt (data = heatshock,id.vars = "name", measure.vars = c(2:28)) 
+
+xyplot(heatshockmelt,"heatshock", 0.001)
+
+
+
+
+
+colname <- "mean"
+i=0
+while (i < 9){
+  colname <- paste(colname, i)
+  col1 = 2+(i*3)
+  col2 = 4+(i*3)
+  heatshock[[colname]] <- rowMeans( heatshock[, c(col1:col2)] ) 
+  i <- i+1
+}
+
+heatshockmean <- heatshock [-c(2:28)]
+names(heatshockmean) <- c("name", "T0", "B12_0.5C", "Fe_B12_0.5C","0.5C", "Fe_0.5C", "3C", "Fe_3C", "6C", "Fe_6C" )
+
+heatshockmeanmelt <-  melt (data = heatshockmean,id.vars = "name", measure.vars = c(2:10)) 
+
+xyplot(heatshockmeanmelt,"heatshockmean", 0.002)
+
+threeD <- read.csv("heatshock.csv", header = TRUE, sep = ",")
+
+```
+
+
+Flavodoxin Annotated
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#this creates a new dataframe from ORF2 only for flavodoxin. Don't really need this unless you want to look into the data. heatmpa does not use longformat data. 
+flavodoxin <- dplyr::filter (ORF2, grepl('flavodoxin|Flavodoxin', name))
+
+#this uses the heatmap function created in the functions file to plot heatmaps
+heatmap(data, ORF2, 'flavodoxin')
+heatmap_unclustered(data, ORF2, 'flavodoxin') 
+
+#create long format from of flavodoxin to plot with ggplot. it 
+flavodoxinmelt <-  melt (data = flavodoxin,id.vars = "name", measure.vars = c(2:28)) 
+
+xyplot(flavodoxinmelt,"flavodoxin", 0.001)
+
+#how to calculate a row mean 
+#flavodoxin$T0 <- rowMeans( flavodoxin[ , c(2:4)] ) 
+
+colname <- "mean"
+
+#flavodoxin[[colname]] <- rowMeans( flavodoxin[ , c(2:4)] ) 
+
+## creating a loop to do averages of the treatements 
+
+#first, creat loop variable that will count upwards / run the loop
+i=0
+#i<9 is how many time we want the loop to work (loop condition)/while the loop condition is true, the stuff in the curly brackets will happen
+while (i < 9){
+  #the paste function takes two strings and concatenates them together, this so each column has a different name
+  colname <- paste(colname, i)
+  #calculating which columns to use, with the scale factor of i (so, for the fit average, it will calculate the average of the first 3 columns etc)
+  col1 = 2+(i*3)
+  col2 = 4+(i*3)
+  #creating the mean
+  flavodoxin[[colname]] <- rowMeans( flavodoxin[, c(col1:col2)] ) 
+  #weadd 1 to the loop so the loop doesn't go forever
+  i <- i+1
+}
+
+flavodoxinmean <- flavodoxin [-c(2:28)]
+names(flavodoxinmean) <- c("name", "T0", "B12_0.5C", "Fe_B12_0.5C","0.5C", "Fe_0.5C", "3C", "Fe_3C", "6C", "Fe_6C" )
+
+heatmap_unclustered(data, flavodoxinmean, "flavodoxin")
+
+
+flavodoxinmeltmean <-  melt (data = flavodoxinmean,id.vars = "name", measure.vars = c(2:10)) 
+
+xyplot(flavodoxinmeltmean,"flavodoxin", 0.002)
+```
+
+
+
+3-d plotting
+```{r}
+heatshock3d <- heatshock [-c(2:10)]
+
+heatshock3dmelt <-  melt (data = heatshock3d,id.vars = "name", measure.vars = c(2:19)) 
+
+#Creating the new columns
+heatshock3dmelt$Iron <- NA
+heatshock3dmelt$Temperature <- NA
+
+getNumberPart <- function(x) {
+    #this function takes a string and returns the number in it
+    regexpattern <- "(-?(\\d*\\.*\\d+|\\d+\\.))"
+    strapply(x, pattern=regexpattern, FUN=as.numeric, simplify=TRUE, empty=NA)
+}
+
+i = 1
+while(i <= length(heatshock3dmelt$variable)){ #incremen i from 1 to the total number of rows
+  if (grepl("Fe",heatshock3dmelt$variable[i])== TRUE){ # #for each row, check if the variable column has "Fe"
+    heatshock3dmelt$Iron[i] = 1 #if it does, change the value of iron to 1
+  } else{
+    heatshock3dmelt$Iron[i] = 0
+  }
+  
+  heatshock3dmelt$Temperature[i] =    getNumberPart(toString(heatshock3dmelt$variable[i]))
+  #this sets the ith row of the temperature column to whatever number is in the ith row of the variable column. It changes the value of the ith row of the variable column to a string before feeding it into the getNumberPart function
+  i = i+1
+}
+
+```
+
+```{r}
+
+
+scatterplot3d(heatshock3dmelt[5:3],
+                highlight.3d =TRUE, 
+              main = "3D scatterplot", 
+              xlab = "Iron",
+              ylab =  "Temperature",
+              zlab = "Value",
+              pch = 16,
+              type ="h",
+              angle = 24,
+              grid = TRUE, 
+              box = TRUE
+              )
+
+
+addgrids3d(x, y=NULL, z=NULL, grid = TRUE,
+           col.grid = "grey", lty.grid=par("lty"))
+
+plot3d (heatshock3dmelt$Iron, 
+        heatshock3dmelt$Temperature,
+        heatshock3dmelt$Value,
+        xlab ="Iron",
+        ylab = "Temperature", 
+        zlab = "value",
+        col = brewer.pal(3, "Dark2"), 
+        size = 8
+        )
+
+```
+
+
+
+
+
+
 
 
 
