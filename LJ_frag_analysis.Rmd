@@ -23,7 +23,11 @@ library(reshape2)
 library(scales)
 library(calibrate)
 library(tidyr)
-
+library(plotly)
+library(scatterplot3d)
+library(rgl)
+library(RColorBrewer)
+library(gsubfn)
 #I have a R script in this W.D.  with all my functions, so all I do is call the functions from that R.Script into here
 source("fragtranscript_functions.R")
 
@@ -52,40 +56,161 @@ ORF2$name <- sub('[.]', '_', make.names(ORF2$name, unique = TRUE))
 #change column names to treatment names to make more sense 
  names(ORF2)<- c("name", "A_T0", "B_T0", "C_T0", "A_B12_0.5", "B_B12_0.5", "C_B12_0.5", "A_B12Fe_0.5", "B_B12Fe_0.5", "C_B12Fe_0.5", "A_0.5", "B_0.5", "C_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_3", "B_3", "C_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_6", "B_6", "C_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
  
-
 #ORFnoB12 <- ORF2 [-c(5:10)]
 #ORFlowtemp <- ORF2 [-c(17:28)]
-```
-
-
-```{r}
-fixdatafunction: 
-  
 ```
 
 
 Flavodoxin
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 flavodoxin <- dplyr::filter (ORF2, grepl('flavodoxin|Flavodoxin', name))
-fixdata(flavodoxin, 'flavodoxin', "flavodoxin", "flavodoxinmean")
-  
+
+heatmap(data, flavodoxin, "flavodoxin")
+heatmap_unclustered(data, flavodoxin, "flavodoxin")
+
+xyplots(flavodoxin, "Flavodoxin", "flavodoxinmean", 0, 0.002)
+
+``` 
+
+```{r}
+ferredoxin <- dplyr::filter (ORF2, grepl('ferredoxin|Ferredoxin', name))
+
+heatmap_unclustered(data, ferredoxin, "ferredoxin")
+
+
+xyplots(ferredoxin, "ferredoxin", "ferredoxinmean", 0, 0.006)
 ```
 
 HeatShock
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-heatshock <- dplyr::filter (ORF2, grepl('PF00011', name))
-fixdata(heatshock, 'PF00011', "heatshock", "heatshockmean")
+heatshock <- dplyr::filter (ORF2, grepl('PF00011|Heat.shock|heatshock|HSP', name))
+
+heatmap_unclustered(data, heatshock, "PF00011")
+
+
+xyplots(heatshock, "heatshockproteins", "heatshockproteinsmean", 0, 0.002)
+
+
 
 ```
+
+
+
+```{r}
+heatshock3d <- heatshock [-c(2:10)]
+
+heatshock3dmelt <-  melt (data = heatshock3d,id.vars = "name", measure.vars = c(2:19)) 
+
+#Creating the new columns
+heatshock3dmelt$Iron <- NA
+heatshock3dmelt$Temperature <- NA
+
+getNumberPart <- function(x) {
+    #this function takes a string and returns the number in it
+    regexpattern <- "(-?(\\d*\\.*\\d+|\\d+\\.))"
+    strapply(x, pattern=regexpattern, FUN=as.numeric, simplify=TRUE, empty=NA)
+}
+
+i = 1
+while(i <= length(heatshock3dmelt$variable)){ #incremen i from 1 to the total number of rows
+  if (grepl("Fe",heatshock3dmelt$variable[i])== TRUE){ # #for each row, check if the variable column has "Fe"
+    heatshock3dmelt$Iron[i] = 1 #if it does, change the value of iron to 1
+  } else{
+    heatshock3dmelt$Iron[i] = 0
+  }
+  
+  heatshock3dmelt$Temperature[i] =    getNumberPart(toString(heatshock3dmelt$variable[i]))
+  #this sets the ith row of the temperature column to whatever number is in the ith row of the variable column. It changes the value of the ith row of the variable column to a string before feeding it into the getNumberPart function
+  i = i+1
+}
+
+
+
+
+
+```
+
+```{r}
+
+
+scatterplot3d(heatshock3dmelt[5:3],
+                highlight.3d =TRUE, 
+              main = "3D scatterplot", 
+              xlab = "Iron",
+              ylab =  "Temperature",
+              zlab = "Value",
+              pch = 16,
+              type ="h",
+              angle = 24,
+              grid = TRUE, 
+              box = TRUE
+              )
+
+
+addgrids3d(x, y=NULL, z=NULL, grid = TRUE,
+           col.grid = "grey", lty.grid=par("lty"))
+
+plot3d (heatshock3dmelt$Iron, 
+        heatshock3dmelt$Temperature,
+        heatshock3dmelt$Value,
+        xlab ="Iron",
+        ylab = "Temperature", 
+        zlab = "value",
+        col = brewer.pal(3, "Dark2"), 
+        size = 8
+        )
+
+```
+
+
+
+
 
 Cold
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-antifreeze <- dplyr::filter (ORF2, grepl('cold.shock', name))
+antifreeze <- dplyr::filter (ORF2, grepl('cold.shock|HSP60', name))
 
-fixdata(antifreeze, 'cold.shock', "cold", "coldmean")
+heatmap_unclustered(data, heatshock, "HSP60")
 
+xyplots(antifreeze, "antifreezeprotein", "antifreezeproteinmean", 0, 0.01)
+
+scatterplot3d(antifreeze[13:15], 
+              angle = 20)
+```
+
+
+B12
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+MetE <- dplyr::filter (ORF2, grepl('independent', name))
+fixdata(MetE, 'independent', "metE", "MetEmean")
+
+
+MetH  <- dplyr::filter (ORF2, grepl('MetH|metH', name))
+fixdata(MetH, 'metH|MetH', "metH", "MetHmean")
 
 ```
+
+ISIP
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+heatmap(chloro, ORF2, 'ISIP')
+
+heatmap(chloro, ORF2, 'ISIP1')
+
+heatmap_unclustered(chloro, ORF2, 'ISIP1')
+
+heatmap(chloro, ORF2, 'ISIP2')
+
+heatmap_unclustered(chloro, ORF2, 'ISIP3')
+
+heatmap(chloro, ORF2, 'ISIP3')
+
+
+ISIP1 <- dplyr::filter (ORF2, grepl('ISIP1', name))
+fixdata(ISIP1, 'ISIP1', "ISIP1", "ISIP1mean", 0.02, 0.09)
+
+```
+
 
 
 
@@ -100,16 +225,6 @@ fixdata(rubisco, 'RBL', "Rubisco", "Rubiscomean")
 
 ```
 
-B12
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-MetE <- dplyr::filter (ORF2, grepl('independent', name))
-fixdata(MetE, 'independent', "metE", "MetEmean")
-
-
-MetH  <- dplyr::filter (ORF2, grepl('MetH|metH', name))
-fixdata(MetH, 'metH|MetH', "metH", "MetHmean")
-
-```
 
 Nitrate/Nitrite
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
@@ -429,6 +544,9 @@ heatshockmeanmelt <-  melt (data = heatshockmean,id.vars = "name", measure.vars 
 
 xyplot(heatshockmeanmelt,"heatshockmean", 0.002)
 
+threeD <- read.csv("heatshock.csv", header = TRUE, sep = ",")
+
+
 
 ```
 
@@ -451,4 +569,29 @@ xyplot (antifreezemelt, "Antifreeze")
 
 
 
+##Volcano  
+```{r}
+volcano <- read.csv("MCLclustervolcano.csv", header = TRUE, sep = ",")
 
+#removing rows with no values
+volcanoclean <- volcano[-which(volcano$ann_desc == ""),]
+
+#make all descriptions unique
+volcanoclean$ann_desc <- sub('[.]', '_', make.names(volcanoclean$ann_desc, unique = TRUE))
+
+with(ORF, plot(ORF$X16_vs_17.log2fc, -log10(ORF$X16_vs_17.fdr), pch=20))+
+abline (h=1.0, col = "blue", lty = 2, lwd=1)+
+  abline (v= c(-1,1), col = "blue", lty = 2, lwd=1)
+
+P = ggplot (data = ORF, aes(x= X12_vs_13.log2fc, y=-log10(X12_vs_13.fdr))) +
+  geom_point (alpha=0.4, size = 1.75)
+
+P+geom_text_repel(data =  filter (ORF, ORF$X12_vs_13.fdr>2 ), aes (label = ORF$orf_id))
+                  
+                  
+library(ggrepel)
+
+with(subset(ORF, p-adj<0.5), points(ORF$X12_vs_14.log2fc, -log10(ORF$X12_vs_14.fdr), pch=20, col="red"))
+
+
+```

@@ -1,0 +1,772 @@
+---
+title: "LJ_Frag_analysis"
+author: "Loay Jabre"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+Date Last Editted:    
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+#this displays the date this file was written 
+Sys.time()
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE, results='hide'}
+library(ggplot2)
+library(dplyr)
+library(plyr)
+library(gplots)
+library(heatmap.plus)
+library(RColorBrewer)
+library(dplyr)
+library(reshape2)
+library(scales)
+library(calibrate)
+library(tidyr)
+library(plotly)
+library(scatterplot3d)
+library(rgl)
+library(RColorBrewer)
+library(gsubfn)
+library(ggrepel)
+library(latticeExtra)
+
+#I have a R script in this W.D.  with all my functions, so all I do is call the functions from that R.Script into here
+source("fragtranscript_functions.R")
+
+```
+
+Analysis by ORF   
+```{r message=FALSE, warning=FALSE, include=FALSE}
+#Import dataset
+ORF <- read.csv("ORF.csv", header = TRUE, sep = ",")
+
+#removing unwanted columns
+ORF1 <- ORF [-c(1:4, 6,7, 10:12, 15:21, 23:26, 28, 30:34, 35:46,50:58, 83:106)]
+
+#Combine all names into one row 
+ORF1$name <- paste(ORF1$kegg_desc, ORF1$KO_desc, ORF1$KO_pathway, ORF1$KOG_desc, ORF1$KOG_class, ORF1$best_hit_annotation, ORF1$PFams_desc, ORF1$TIGRFams_desc)
+
+#delete the rows of the different names
+ORF2 <- ORF1 [-c(1:8)]
+
+#move the name column into the front of the dataset
+ORF2 <- ORF2 [c(28, 1:27)]
+
+#make all descriptions unique
+ORF2$name <- sub('[.]', '_', make.names(ORF2$name, unique = TRUE))
+
+#change column names to treatment names to make more sense 
+ names(ORF2)<- c("name", "A_T0", "B_T0", "C_T0", "A_B12_0.5", "B_B12_0.5", "C_B12_0.5", "A_B12Fe_0.5", "B_B12Fe_0.5", "C_B12Fe_0.5", "A_0.5", "B_0.5", "C_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_3", "B_3", "C_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_6", "B_6", "C_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+ 
+#ORFnoB12 <- ORF2 [-c(5:10)]
+#ORFlowtemp <- ORF2 [-c(17:28)]
+```
+
+
+Some notes:    
+
+
+1) There is a very large spread in the transcription values for each protein. For example, some flavodoxin transcripts are orders of magnitude higher than other flavodoxin transcripts. What would be the best way to separate these? I noticed the trends can change if I choose to plot only the ones that have high values or only the ones that have low values. 
+
+
+2) There are two plots for most of the 'proteins'. The points on the first plot show each instance that protein's name is found in the dataset under the specified treatment. The black trendline is the mean of all of those names for that particular treatment.   
+The second plot shows the average of the triplicates, plotted against Log10 of values to accomodate the large spread in data. 
+
+
+Flavodoxin
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+flavodoxin <- dplyr::filter (ORF2, grepl('Flavodoxin|flavodoxin', name))
+
+#heatmap(data, flavodoxin, "flavodoxin")
+#heatmap_unclustered(data, flavodoxin, "flavodoxin")
+
+#xyplots(flavodoxin, "Flavodoxin", "flavodoxin_treatment_mean", 0, 0.002)
+xyplotconcise(flavodoxin,"Flavodoxin")
+
+``` 
+
+Ferredoxin
+```{r}
+ferredoxin <- dplyr::filter (ORF2, grepl('Ferredoxin|ferredoxin', name))
+#heatmap(data, ferredoxin, "ferredoxin")
+xyplotconcise(ferredoxin,"Ferredoxin")
+```
+
+Ferritin - Iron storage protein
+```{r}
+Ferritin <- dplyr::filter (ORF2, grepl('ferritin|Ferritin', name))
+xyplotconcise(Ferritin, "Ferritin")
+
+```
+
+
+ISIPs -    
+It seems like ISIP1 has the biggest response to 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ISIP <- dplyr::filter (ORF2, grepl('ISIP', name))
+#heatmap(data, ISIP1, "ISIP")
+#xyplots(ISIP1, "ISIP1", "ISIP1_treatment_mean", 0, 0.05)
+xyplotconcise(ISIP,"All of ISIPs")
+
+
+ISIP1 <- dplyr::filter (ORF2, grepl('ISIP1', name))
+xyplotconcise(ISIP1,"ISIP1")
+
+ISIP2 <- dplyr::filter (ORF2, grepl('ISIP2', name))
+xyplotconcise(ISIP2,"ISIP2A")
+
+
+ISIP3 <- dplyr::filter (ORF2, grepl('ISIP3', name))
+xyplotconcise(ISIP2,"ISIP3")
+
+```
+
+
+
+HeatShock
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#heatshock <- dplyr::filter (ORF2, grepl('HSP|heatshock|heat.shock.protein|heat', name))
+#xyplotconcise(heatshock,"HSP70")
+
+
+HSP20 <- dplyr::filter (ORF2, grepl('HSP20C', name))
+xyplotconcise(HSP20,"HSP20")
+
+
+HSP70 <- dplyr::filter (ORF2, grepl('HSP70_1|HSP70_2', name))
+#heatmap(data, HSP70, "HSP70")
+#xyplots(HSP70, "heatshockproteins", "heatshockproteinsmean", 0, 0.002)
+xyplotconcise(HSP70,"HSP70")
+
+HSP90 <- dplyr::filter (ORF2, grepl('HSP90', name))
+xyplotconcise(HSP90,"HSP90")
+#heatmap(data, HSP90, "HSP90")
+```
+
+Cold
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+antifreeze <- dplyr::filter (ORF2, grepl('cold.shock|antifreeze|cspD', name))
+#heatmap(data, heatshock, "HSP60")
+#heatmap(data, antifreeze, "cold.shock|antifreeze|HSP60")
+#xyplots(antifreeze, "antifreezeprotein", "antifreezeprotein_treatment_mean", 0, 0.01)
+xyplotconcise(antifreeze,"Cold Shock Proteins")
+
+```
+
+
+MetE
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+MetE<- dplyr::filter (ORF2, grepl('Cobalamin.independent', name))
+
+CBA1 <- dplyr::filter (ORF2, grepl('CBA1', name))
+
+MetE_CBA1 <- dplyr::filter (ORF2, grepl('Cobalamin.independent|CBA1', name))
+
+#heatmap(data, MetE, "Cobalamin|CBA")
+#xyplots(MetE, "MetE+CBA1", "MetE+CBA1_treatment_mean", 0, 0.01)
+
+xyplotconcise(MetE,"MetE")
+xyplotconcise(CBA1,"CBA1")
+xyplotconcise(MetE_CBA1,"MetE+CBA1")
+```
+
+MetH
+```{r}
+MetH  <- dplyr::filter (ORF2, grepl('METH|metH', name))
+#heatmap(data, MetH, "metH|METH")
+#xyplots(MetH, "MetH", "MetH_treatment_mean", 0, 0.01)
+xyplotconcise(MetH,"MetH")
+```
+
+
+Nitrite Reductase
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+Nitr <- dplyr::filter (ORF2, grepl('nitrite|Nitrite', name))
+#heatmap(group, ORF2, 'NIR')
+#heatmap_unclustered(group, ORF2, 'NIR_2')
+#xyplots(Nitr, "MetH", "MetH_treatment_mean", 0, 0.01)
+
+xyplotconcise(Nitr,"Nitrite Reductase")
+```
+
+
+Photosystem II Antennae
+psbY : manganese binding protein of PSII
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+PsbY <- dplyr::filter (ORF2, grepl('PsbY', name))
+xyplotsmalldata(PsbY,"PsbY")
+
+CP47 <- dplyr::filter (ORF2, grepl('CP47', name))
+#xyplotsmalldata(CP47,"CP47")
+#heatmap_unclustered(group, CP47, 'CP47')
+#CP47 or CPa-1, (encoded by PsbB gene): Proximal antennae  
+xyplotconcise(CP47, "CP47")
+heatmap(grou, CP47, 'CP47')
+
+CP43 <- dplyr::filter (ORF2, grepl('CP43|psbC', name))
+xyplotsmalldata(CP43,"CP43")
+xyplotconcise(CP43, "CP43")
+#CP43,or CPa-2, (encoded by PsbC gene): Proximal antennae 
+
+```
+
+Photosystem II Light harvesting
+```{r}
+Lhcf <- dplyr::filter (ORF2, grepl('Lhcf|lhcf', name))
+xyplotconcise(Lhcf, "All of Light Harvesting Complexes F ")
+
+Lhcf1 <- dplyr::filter (ORF2, grepl('Lhcf1', name))
+xyplotconcise(Lhcf1, "LHCF1")
+
+Lhcf4 <- dplyr::filter (ORF2, grepl('Lhcf4', name))
+xyplotconcise(Lhcf4, "LHCF4")
+
+Lhcf7 <- dplyr::filter (ORF2, grepl('Lhcf7', name))
+xyplotconcise(Lhcf7, "LHCF7")
+
+Lhcf9 <- dplyr::filter (ORF2, grepl('Lhcf9', name))
+xyplotconcise(Lhcf9, "LHCF9")
+
+Lhcf16 <- dplyr::filter (ORF2, grepl('Lhcf16', name))
+xyplotconcise(Lhcf16, "LHCF16")
+
+#fucoxanthin <- dplyr::filter (ORF2, grepl('fucoxanthin', name))
+#xyplotconcise(fucoxanthin, "Fucoxanthin")
+
+#Lhca <- dplyr::filter (ORF2, grepl('Lhca', name))
+#xyplotconcise(Lhca, "fucoxanthin")
+
+```
+
+
+LI818 (lhcx) - photoprotection / stress induced
+```{r}
+Lhcx5 <- dplyr::filter (ORF2, grepl('lhcx5', name))
+xyplotconcise(Lhcx5, "LHCX5")
+
+Lhcx6 <- dplyr::filter (ORF2, grepl('Lhcx6', name))
+xyplotconcise(Lhcx6, "LHCX6")
+
+```
+
+
+
+
+
+Photosystem II Reaction Center 
+D1 (gene: PsbA), QB
+D2 (gene: PsbD), QA
+Cytochrome c550 (gene: PsbV)
+```{r eval=FALSE, include=FALSE}
+D1 <- dplyr::filter (ORF2, grepl('center.D1|protein.D1|em.II.D1|PsbA', name))
+xyplotsmalldata(D1,"D1")
+xyplotconcise(D1, "D1")
+
+D2 <- dplyr::filter (ORF2, grepl('center.D2|protein.D2|em.II.D2', name))
+xyplotsmalldata(D2,"D2")
+xyplotconcise(D2, "D2")
+
+
+Psb <- dplyr::filter (ORF2, grepl('PsbQ|PsbO|PsbP', name))
+xyplotsmalldata(Psb,"PSII oxygen-evolving complex (Psb O,P,Q)")
+xyplotconcise(Psb, "PSII oxygen-evolving complex (Psb O,P,Q)")
+
+
+
+PsbO <- dplyr::filter (ORF2, grepl('PsbO', name))
+xyplotsmalldata(PsbO,"Manganese Stabilizing Protein (PsbO)")
+
+PsbP <- dplyr::filter (ORF2, grepl('PsbP', name))
+xyplotsmalldata(PsbP,"PsbP")
+xyplotconcise(PsbP, "PsbP")
+
+PsbQ <- dplyr::filter (ORF2, grepl('PsbQ', name))
+xyplotsmalldata(PsbQ,"PsbQ")
+xyplotconcise(PsbQ, "PsbQ")
+
+
+
+Cyt_c550 <- dplyr::filter (ORF2, grepl('c.550|psbV', name))
+xyplotsmalldata(Cyt_c550,"Cyt_c550")
+xyplotconcise(Cyt_c550, "Cyt_c550")
+
+#cytb559 is a heterodiamer (PsbE and PsbF ) with a heme cofactor 
+#unclear function, likely involved in photoprotection
+Cyt_b559 <- dplyr::filter (ORF2, grepl('psbE|psbF|PF00284', name))
+xyplotconcise(Cyt_b559, "Cyt_b559")
+heatmap_unclustered(group, Cytb559, 'b559|psbF')
+xyplotsmalldata(Cyt_b559, "cytoc")
+
+
+
+```
+
+
+Plastoquinone
+```{r eval=FALSE, include=FALSE}
+PQ <- dplyr::filter (ORF2, grepl('plastoquinone', name))
+xyplotconcise(PQ, "CytC")
+
+#NDH <- dplyr::filter (ORF2, grepl('NDH', name))
+#xyplotconcise(NDH, "CytC")
+
+```
+
+
+
+Cytochrome
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+Rieske <- dplyr::filter (ORF2, grepl('Rieske|rieske', name))
+xyplotconcise(Rieske,"Rieske iron-sulfur protein")
+
+CytC <- dplyr::filter (ORF2, grepl('fumarate', name))
+xyplotconcise(CytC,"CytC")
+
+#Cytochrome <- dplyr::filter (ORF2, grepl('cytochrome|Cytochrome|cytoc|Cytoc', name))
+#xyplotconcise(Cytochrome, "Cytochrome")
+
+
+#CPF <- dplyr::filter (ORF2, grepl('CPF', name))
+#xyplotsmalldata(CPF,"CP43")
+#xyplotconcise(CPF, "CP43")
+
+```
+
+Plastocyanin - Only a small decrease when iron is added. Interesting! Will investigate further. 
+```{r}
+Plasto <- dplyr::filter (ORF2, grepl('plastocyanin|PCY|Plastocyanin', name))
+xyplotconcise(Plasto, "Plastocyanin")
+
+```
+
+
+Rubisco
+```{r}
+rubisco <- dplyr::filter (ORF2,grepl('RBL|RuBisCO|rubisco|RUBISCO',name))
+xyplotconcise(rubisco, "RuBisCO")
+```
+
+
+
+
+Photosystem_I
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+
+P700 <- dplyr::filter (ORF2, grepl('P700', name))
+xyplotconcise(P700, "P700")
+
+
+
+PsaA <- dplyr::filter (ORF2, grepl('PsaA', name))
+xyplotconcise(PsaA, "PsaA")
+
+
+PsaB <- dplyr::filter (ORF2, grepl('PsaB', name))
+xyplotconcise(PsaB, "PsaB")
+
+
+PsaE <- dplyr::filter (ORF2, grepl('PsaE', name))
+xyplotconcise(PsaE, "PsaE")
+
+
+LHCA <- dplyr::filter (ORF2, grepl('lhcA', name))
+xyplotsmalldata(LHCA, "PSI LHC-A")
+xyplotconcise(LHCA, "PsaE")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r eval=FALSE, include=FALSE}
+
+
+flavomelt <-  melt (data = flavodoxin,id.vars = "name", measure.vars = c(2:28))
+
+
+ISIPmelt <-  melt (data = ISIP1,id.vars = "name", measure.vars = c(2:28))
+
+
+ggplot(flavomelt, aes(x=variable, y=value, colour = name ))+
+    geom_point(aes(group=name,alpha=0.9))+
+    stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.5)+
+    stat_summary(fun.data = mean_se, geom = "errorbar", colour = "black")+
+    xlab ("Treatmet")+
+    ggtitle("title")+
+    theme_bw()+
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
+    scale_y_continuous(limits = c(0,0.005))+
+    theme(legend.position = "none")+
+  stat_summary(data = ISIPmelt, fun.y = mean, geom = "line", colour = "red", group =1, size = 1.5 )
+
+ggplot(ISIPmelt, aes(x=variable, y=value, colour = name ))+
+    geom_point(aes(group=name,alpha=0.9))+
+    stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.5)+
+    stat_summary(fun.data = mean_se, geom = "errorbar", colour = "black")+
+    xlab ("Treatmet")+
+    ggtitle("title")+
+    theme_bw()+
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
+    scale_y_continuous(limits = c(0,0.005))+
+    theme(legend.position = "none")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Erin's figure
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+#MetE
+MetE <- dplyr::filter (ORFerin, grepl('Cobalamin.independent', name))
+heatmap_unclustered(chloro, MetE, 'Cobalamin.independent')
+#heatmap(chloro, MetE, 'Cobalamin.independent')
+
+MetEeditted <- MetE[-c(3,4,15),]
+
+MetEeditted$name <- c("MetE_TIGR01371", "MetE", "MetE_TIGR01371_1","MetE_TIGR01371_2","MetE_1", "MetE_TIGR01371_3","MetE_TIGR01371_4", "MetE_2","MetE_3", "MetE_4",  "MetE_TIGR01371_5", "MetE_5" )
+
+
+heatmap_unclustered(chloro, MetEeditted, 'Met')
+heatmap(chloro, MetEeditted, 'Met')
+
+```
+
+```{r eval=FALSE, include=FALSE}
+#CBA1
+CBA1 <- dplyr::filter (ORFerin, grepl('CBA1', name))
+heatmap_unclustered(chloro, CBA1, 'CBA1')
+heatmap(chloro, CBA1, 'CBA1')
+
+CBA1editted <- CBA1[-c(1,9,10),]
+
+CBA1editted$name <- c("CBA1","CBA1_1","CBA1_2","CBA1_3","CBA1_4","CBA1_5","CBA1_6")
+
+heatmap_unclustered(chloro, CBA1editted, 'CBA1')
+heatmap(chloro, CBA1editted, 'CBA1')
+
+
+```
+
+```{r eval=FALSE, include=FALSE}
+
+#ISIP2A
+ISIP2A <- dplyr::filter (ORFerin, grepl('ISIP2', name))
+ISIP2Aedit <- ISIP2A[-c(16,21,22,36:38,32,30),]
+
+heatmap_unclustered(chloro, ISIP2A, 'ISIP2')
+heatmap(chloro, ISIP2A, 'ISIP2')
+
+
+heatmap_unclustered(chloro, ISIP2Aedit, 'ISIP2')
+heatmap(chloro, ISIP2Aedit, 'ISIP2')
+```
+
+```{r eval=FALSE, include=FALSE}
+#ISIP1A
+
+ISIP1A <- dplyr::filter (ORFerin, grepl('ISIP1', name))
+ISIP1A <- ISIP1A[-c(4,5,7,8,12,16,21,22,23,26),]
+heatmap_unclustered(chloro, ORFerin, 'ISIP1')
+
+heatmap_unclustered(chloro, ISIP1A, 'ISIP1')
+heatmap(chloro, ISIP1A, 'ISIP1')
+```
+
+```{r eval=FALSE, include=FALSE}
+CBAMet <- rbind (CBA1editted, MetEeditted)
+CBAMet2 <- CBAMet [-c(2,3,4)]
+heatmap_unclustered(chloro, CBAMet2, 'CBA1|Met')
+heatmap(chloro, CBAMet2, 'CBA1|Met')
+
+CBAmetISIP <- rbind(CBA1editted, MetEeditted, ISIP2Aedit)
+
+heatmap_unclustered(chloro, CBAmetISIP, 'CBA1|Met|ISIP')
+heatmap(chloro, CBAmetISIP, 'CBA1|Met|ISIP')
+
+```
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+CBAmelt = melt(data = CBA1editted, id.vars = "name", measure.vars = c(2:16))
+
+MetEmelt = melt (data = MetEeditted,id.vars = "name", measure.vars = c(2:16)) 
+
+ggplot(MetEmelt, aes(x=variable, y=value ))+
+  geom_point(aes(color = name))+
+  geom_line(stat = "summary", fun.y = "mean")+
+  xlab ("Treatmet")+
+  ggtitle("CBA1")+
+ theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))
+
+
+ggplot(MetEmelt, aes(x=variable, y=value ))+
+  geom_line(aes(color = name, group=name))+
+  xlab ("Treatmet")+
+  ggtitle("CBA1")+
+ theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))
+
+ggplot(CBAmelt, aes(x=variable, y=value ))+
+  geom_line(aes(color = name, group=name))+
+  xlab ("Treatmet")+
+  ggtitle("CBA1")+
+ theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))
+```
+
+
+
+```{r eval=FALSE, include=FALSE}
+ggplot(flavodoxinmeltmean, aes(x=variable, y=value, colour = name ))+
+    geom_point(alpha=0.9)+
+    stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.5)+
+    xlab ("Treatmet")+
+    ggtitle("title")+
+    theme_bw()+
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
+    theme(legend.position = "none")+
+scale_y_log10()
+
+```
+
+
+Flavodoxin Annotated
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+#this creates a new dataframe from ORF2 only for flavodoxin. Don't really need this unless you want to look into the data. heatmpa does not use longformat data. 
+flavodoxin <- dplyr::filter (ORF2, grepl('flavodoxin|Flavodoxin', name))
+
+#this uses the heatmap function created in the functions file to plot heatmaps
+heatmap(data, ORF2, 'flavodoxin')
+heatmap_unclustered(data, ORF2, 'flavodoxin') 
+
+#create long format from of flavodoxin to plot with ggplot. it 
+flavodoxinmelt <-  melt (data = flavodoxin,id.vars = "name", measure.vars = c(2:28)) 
+
+xyplot(flavodoxinmelt,"flavodoxin", 0.001)
+
+#how to calculate a row mean 
+#flavodoxin$T0 <- rowMeans( flavodoxin[ , c(2:4)] ) 
+
+colname <- "mean"
+
+#flavodoxin[[colname]] <- rowMeans( flavodoxin[ , c(2:4)] ) 
+
+## creating a loop to do averages of the treatements 
+
+#first, creat loop variable that will count upwards / run the loop
+i=0
+#i<9 is how many time we want the loop to work (loop condition)/while the loop condition is true, the stuff in the curly brackets will happen
+while (i < 9){
+  #the paste function takes two strings and concatenates them together, this so each column has a different name
+  colname <- paste(colname, i)
+  #calculating which columns to use, with the scale factor of i (so, for the fit average, it will calculate the average of the first 3 columns etc)
+  col1 = 2+(i*3)
+  col2 = 4+(i*3)
+  #creating the mean
+  flavodoxin[[colname]] <- rowMeans( flavodoxin[, c(col1:col2)] ) 
+  #weadd 1 to the loop so the loop doesn't go forever
+  i <- i+1
+}
+
+flavodoxinmean <- flavodoxin [-c(2:28)]
+names(flavodoxinmean) <- c("name", "T0", "B12_0.5C", "Fe_B12_0.5C","0.5C", "Fe_0.5C", "3C", "Fe_3C", "6C", "Fe_6C" )
+
+heatmap_unclustered(data, flavodoxinmean, "flavodoxin")
+
+
+flavodoxinmeltmean <-  melt (data = flavodoxinmean,id.vars = "name", measure.vars = c(2:10)) 
+
+xyplot(flavodoxinmeltmean,"flavodoxin", 0.002)
+```
+
+
+
+HeatShock
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+
+heatshock <- dplyr::filter (ORF2, grepl('PF00011', name))
+
+heatmap_unclustered(iron, ORF2, 'PF00011')
+heatmap(iron, ORF2, 'PF00011')
+heatmap(iron, ORF2, 'HSP20')
+
+
+heatshockmelt <-  melt (data = heatshock,id.vars = "name", measure.vars = c(2:28)) 
+
+xyplot(heatshockmelt,"heatshock", 0.001)
+
+
+
+
+
+colname <- "mean"
+i=0
+while (i < 9){
+  colname <- paste(colname, i)
+  col1 = 2+(i*3)
+  col2 = 4+(i*3)
+  heatshock[[colname]] <- rowMeans( heatshock[, c(col1:col2)] ) 
+  i <- i+1
+}
+
+heatshockmean <- heatshock [-c(2:28)]
+names(heatshockmean) <- c("name", "T0", "B12_0.5C", "Fe_B12_0.5C","0.5C", "Fe_0.5C", "3C", "Fe_3C", "6C", "Fe_6C" )
+
+heatshockmeanmelt <-  melt (data = heatshockmean,id.vars = "name", measure.vars = c(2:10)) 
+
+xyplot(heatshockmeanmelt,"heatshockmean", 0.002)
+
+threeD <- read.csv("heatshock.csv", header = TRUE, sep = ",")
+
+
+
+```
+
+
+
+Cold
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+Antifreeze <- dplyr::filter (ORF2, grepl('cold.shock', name))
+Antifreeze2 <- dplyr::filter (Antifreeze, grepl('X_', name))
+antifreezemelt <- melt(data = Antifreeze2, id.vars = "name", measure.vars = c(2:25))
+
+heatmap_unclustered(iron, ORF2, 'PF11999')
+heatmap(iron, ORF2, 'PF11999')
+heatmap_unclustered(iron, Antifreeze, 'X_')
+heatmap(iron, Antifreeze, 'X_')
+heatmap(ORF2, ORF2, 'Fba3')
+
+xyplot (antifreezemelt, "Antifreeze")
+```
+
+```{r}
+
+volcano =  dplyr::filter (ORF, grepl('ISIP|flavodoxin', kegg_desc))
+
+volcano <- volcano[c("orf_id", "X12_vs_13.log2fc", "X12_vs_13.fdr")]
+volcano ["group"] <- "notsignificant"
+
+volcano [which(volcano ["X12_vs_13.fdr"] < 0.05 & abs(volcano["X12_vs_13.log2fc"]) < -1.0), "group"] <- "significant"
+
+
+volcano [which(volcano ["X12_vs_13.fdr"] > 0.05 & abs(volcano["X12_vs_13.log2fc"]) < -1.0), "group"] <- "foldchange"
+
+volcano [which(volcano ["X12_vs_13.fdr"] < 0.05 & abs(volcano["X12_vs_13.log2fc"]) > -1), "group"] <- "significant&foldchange"
+
+
+
+```
+
+
+##Volcano  
+```{r eval=FALSE, include=FALSE}
+
+ISIP1volcano =  dplyr::filter (ORF, grepl('ISIP1|flavodoxin', kegg_desc))
+
+
+
+with(ISIP1volcano, plot(ISIP1volcano$X12_vs_13.log2fc, -log10(ISIP1volcano$X12_vs_13.fdr), pch=20))+
+abline (h=1.0, col = "blue", lty = 2, lwd=1)+
+  abline (v= c(-1,1), col = "blue", lty = 2, lwd=1)
+
+
+
+
+
+#interactive plot 
+plot_ly(data = ISIP1volcano, x = ISIP1volcano$X12_vs_13.log2fc, y = -log10(ISIP1volcano$X12_vs_13.fdr), text = ISIP1volcano$orf_id, mode = "markers", color = "red")%>% 
+  layout(title ="Volcano Plot")%>%
+  layout(annotations = ISIP1volcano$orf_id)
+
+
+
+ggplot (data = ISIP1volcano, aes(x= X12_vs_13.log2fc, y=-log10(X12_vs_13.fdr))) +
+  geom_point (alpha=0.4, size = 1.75)
+
+P+geom_text_repel(data =  filter(ISIP1volcano, ISIP1volcano$X12_vs_13.fdr ), aes(label = ISIP1volcano$orf_id))
+                  
+                  
+
+with(subset(ORF, p-adj<0.5), points(ORF$X12_vs_14.log2fc, -log10(ORF$X12_vs_14.fdr), pch=20, col="red"))
+
+
+```
+
+
+
+3d
+```{r eval=FALSE, include=FALSE}
+heatshock3d <- heatshock [-c(2:10)]
+
+heatshock3dmelt <-  melt (data = heatshock3d,id.vars = "name", measure.vars = c(2:19)) 
+
+#Creating the new columns
+heatshock3dmelt$Iron <- NA
+heatshock3dmelt$Temperature <- NA
+
+getNumberPart <- function(x) {
+    #this function takes a string and returns the number in it
+    regexpattern <- "(-?(\\d*\\.*\\d+|\\d+\\.))"
+    strapply(x, pattern=regexpattern, FUN=as.numeric, simplify=TRUE, empty=NA)
+}
+
+i = 1
+while(i <= length(heatshock3dmelt$variable)){ #incremen i from 1 to the total number of rows
+  if (grepl("Fe",heatshock3dmelt$variable[i])== TRUE){ # #for each row, check if the variable column has "Fe"
+    heatshock3dmelt$Iron[i] = 1 #if it does, change the value of iron to 1
+  } else{
+    heatshock3dmelt$Iron[i] = 0
+  }
+  
+  heatshock3dmelt$Temperature[i] =    getNumberPart(toString(heatshock3dmelt$variable[i]))
+  #this sets the ith row of the temperature column to whatever number is in the ith row of the variable column. It changes the value of the ith row of the variable column to a string before feeding it into the getNumberPart function
+  i = i+1
+}
+
+
+cloud(value~Iron+Temperature, heatshock3dmelt, panel.3d.cloud = panel.3dbars(heatshock3dmelt$Iron, heatshock3dmelt$value ,heatshock3dmelt$Temperature), col.facet= 'grey',  xbase=1, ybase=6,xlim =6, scales=list(arrows=FALSE, col=1), par.settings = list(axis.line = list(col = "transparent")))
+
+
+
+scatterplot3d(antifreeze[13:15], 
+              angle = 50)
+
+```
+
+
+
