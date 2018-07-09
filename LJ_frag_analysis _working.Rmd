@@ -692,19 +692,25 @@ xyplot (antifreezemelt, "Antifreeze")
 
 ```{r}
 
-volcano =  dplyr::filter (ORF, grepl('ISIP|flavodoxin', kegg_desc))
+volcano =  dplyr::filter (ORF, grepl('ISIP|flavodoxin|ferritin|Ferritin', kegg_desc))
 
-volcano <- volcano[c("orf_id", "X12_vs_13.log2fc", "X12_vs_13.fdr")]
+volcano <- ORF[c("kegg_desc", "X12_vs_13.log2fc", "X12_vs_13.fdr")]
+names(volcano) <- c("gene", "Fold", "FDR")
 volcano ["group"] <- "notsignificant"
 
-volcano [which(volcano ["X12_vs_13.fdr"] < 0.05 & abs(volcano["X12_vs_13.log2fc"]) < -1.0), "group"] <- "significant"
+#significant but not large enough fold change
+volcano [which(volcano['FDR'] < 0.05 & abs(volcano['Fold']) < 1), "group"]<- "significant" 
+# large enough fold change, not significant
+volcano [which(volcano ['FDR'] > 0.05 & abs(volcano["Fold"])> 1), "group"] <- "foldchange"
+
+#Significant and fold change
+volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 1), "group"] <- "significantfoldchange"
 
 
-volcano [which(volcano ["X12_vs_13.fdr"] > 0.05 & abs(volcano["X12_vs_13.log2fc"]) < -1.0), "group"] <- "foldchange"
-
-volcano [which(volcano ["X12_vs_13.fdr"] < 0.05 & abs(volcano["X12_vs_13.log2fc"]) > -1), "group"] <- "significant&foldchange"
-
-
+plot_ly(data = volcano, x = volcano$Fold, y = -log10(volcano$FDR), text = volcano$gene, mode = "markers", color = volcano$group) %>% 
+  layout(title ="Volcano Plot")
+ 
+  
 
 ```
 
