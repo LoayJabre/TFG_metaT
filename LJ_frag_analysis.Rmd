@@ -20,7 +20,6 @@ library(plyr)
 library(gplots)
 library(heatmap.plus)
 library(RColorBrewer)
-library(dplyr)
 library(reshape2)
 library(scales)
 library(calibrate)
@@ -28,7 +27,6 @@ library(tidyr)
 library(plotly)
 library(scatterplot3d)
 library(rgl)
-library(RColorBrewer)
 library(gsubfn)
 library(ggrepel)
 library(gridExtra)
@@ -61,6 +59,25 @@ Some notes:
 
 
 1) There is a very large spread in the transcription values for each protein. For example, some flavodoxin transcripts are orders of magnitude higher than other flavodoxin transcripts. What would be the best way to separate these? I noticed the trends can change if I choose to plot only the ones that have high values or only the ones that have low values. 
+
+
+
+##Volcano 
+```{r}
+with(ORF, plot(X12_vs_13.log2fc, -log10(X12_vs_13.fdr), pch=20, main="Volcano plot", xlim=c(-20,20)))
+
+
+with(subset(ORF, X12_vs_13.fdr<.05 ), points(X12_vs_13.log2fc, -log10(X12_vs_13.fdr), pch=20, col="red"))
+
+with(subset(ORF, abs(X12_vs_13.log2fc)>1), points(X12_vs_13.log2fc, -log10(X12_vs_13.fdr), pch=20, col="orange"))
+
+with(subset(ORF, X12_vs_13.fdr<.05 & abs(X12_vs_13.log2fc)>1), points(X12_vs_13.log2fc, -log10(X12_vs_13.fdr), pch=20, col="green"))
+
+
+with(subset(ORF, X12_vs_13.fdr<.05 & abs(X12_vs_13.log2fc)>1), textxy(X12_vs_13.log2fc, -log10(X12_vs_13.fdr), labs=orf_id, cex=.8))
+
+```
+
 
 
 ##Volcano  
