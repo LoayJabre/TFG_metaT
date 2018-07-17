@@ -52,6 +52,7 @@ ORF2 <- ORF2 [c(28, 1:27)]
 ORF2$name <- sub('[.]', '_', make.names(ORF2$name, unique = TRUE))
 
 names(ORF2)<- c("name", "A_T0", "B_T0", "C_T0", "A_B12_0.5", "B_B12_0.5", "C_B12_0.5", "A_B12Fe_0.5", "B_B12Fe_0.5", "C_B12Fe_0.5", "A_0.5", "B_0.5", "C_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_3", "B_3", "C_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_6", "B_6", "C_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+
 ```
 
 
@@ -62,25 +63,19 @@ Some notes:
 1) There is a very large spread in the transcription values for each protein. For example, some flavodoxin transcripts are orders of magnitude higher than other flavodoxin transcripts. What would be the best way to separate these? I noticed the trends can change if I choose to plot only the ones that have high values or only the ones that have low values. 
 
 
-2) There are two plots for most of the 'proteins'. The points on the first plot show each instance that protein's name is found in the dataset under the specified treatment. The black trendline is the mean of all of those names for that particular treatment.   
-The second plot shows the average of the triplicates, plotted against Log10 of values to accomodate the large spread in data. 
-
 ##Volcano  
 ```{r}
-ISIP1volcano =  dplyr::filter (ORF, grepl('ISIP1|flavodoxin', kegg_desc))
+#if i want to filter out the dataset and look for something in specific
+#ISIP1volcano =  dplyr::filter (ORF, grepl('ISIP1|flavodoxin', kegg_desc))
+
+#this combines the names of from all of the dataset
 ORF$name <- paste(ORF$kegg_desc, ORF$KO_desc, ORF$KO_pathway, ORF$KOG_desc, ORF1$KOG_class, ORF1$best_hit_annotation, ORF1$PFams_desc, ORF1$TIGRFams_desc)
 
 
-plot_ly (with(ISIP1volcano, plot(ISIP1volcano$X12_vs_13.log2fc, -log10(ISIP1volcano$X12_vs_13.fdr), pch=20))+
-abline (h=1.0, col = "blue", lty = 2, lwd=1)+
-  abline (v= c(-1,1), col = "blue", lty = 2, lwd=1))
-
-with(ORF, plot(ORF$X16_vs_17.log2fc, -log10(ORF$X16_vs_17.fdr), pch=20))+
-abline (h=1.0, col = "blue", lty = 2, lwd=1)+
-  abline (v= c(-1,1), col = "blue", lty = 2, lwd=1)
-
-ggplot (data = ORF, aes(x= X12_vs_13.log2fc, y=-log10(X12_vs_13.fdr))) +
-  geom_point (alpha=0.4, size = 1.75)
+ggplot (data = volcano, aes(x= Fold, y=-log10(FDR), color= group)) +
+  geom_point (alpha=0.9, size = 1.75)+
+  geom_hline (yintercept = 1.3, col = "blue", lty = 2, lwd=1 )+
+  geom_vline (xintercept = c(-1,1), col = "blue", lty = 2, lwd=1 )
 
 
 #interactive plot 
@@ -89,19 +84,16 @@ plot_ly(data = ISIP1volcano, x = ISIP1volcano$X12_vs_13.log2fc, y = -log10(ISIP1
   layout(annotations = ISIP1volcano$kegg_desc)
 
 #plot is failing, so the widget helps.
-
 x = plot_ly(data = ORF, x = ORF$X12_vs_18.log2fc, y = -log10(ORF$X12_vs_18.fdr), text = ORF$name, mode = "markers", color = "red")%>% 
   layout(title ="Volcano Plot")%>%
   layout(annotations = ORF$name)
 htmlwidgets::saveWidget(x, "x.html", selfcontained = FALSE)
 
 
-
-
 ### adding color 
-volcano =  dplyr::filter (ORF, grepl('ISIP|flavodoxin|ferritin|Ferritin', kegg_desc))
+#volcano =  dplyr::filter (ORF, grepl('ISIP|flavodoxin|ferritin|Ferritin', kegg_desc))
 
-volcano <- ORF[c("kegg_desc", "X12_vs_13.log2fc", "X12_vs_13.fdr")]
+volcano <- ORF[c("name", "X12_vs_13.log2fc", "X12_vs_13.fdr")]
 names(volcano) <- c("gene", "Fold", "FDR")
 volcano ["group"] <- "notsignificant"
 
@@ -117,6 +109,15 @@ volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 1), "group"] <- "
 plot_ly(data = volcano, x = volcano$Fold, y = -log10(volcano$FDR), text = volcano$gene, mode = "markers", color = volcano$group) %>% 
   layout(title ="Volcano Plot")
 ```
+
+
+
+
+
+
+
+
+
 
 Flavodoxin
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
