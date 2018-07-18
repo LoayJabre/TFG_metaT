@@ -51,6 +51,8 @@ ORF2$name <- sub('[.]', '_', make.names(ORF2$name, unique = TRUE))
 
 names(ORF2)<- c("name", "A_T0", "B_T0", "C_T0", "A_B12_0.5", "B_B12_0.5", "C_B12_0.5", "A_B12Fe_0.5", "B_B12Fe_0.5", "C_B12Fe_0.5", "A_0.5", "B_0.5", "C_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_3", "B_3", "C_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_6", "B_6", "C_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
 
+#this combines the names of from all of the dataset
+ORF$name <- paste(ORF$kegg_desc, ORF$KO_desc, ORF$KO_pathway, ORF$KOG_desc, ORF1$KOG_class, ORF1$best_hit_annotation, ORF1$PFams_desc, ORF1$TIGRFams_desc)
 ```
 
 
@@ -58,21 +60,19 @@ names(ORF2)<- c("name", "A_T0", "B_T0", "C_T0", "A_B12_0.5", "B_B12_0.5", "C_B12
 Some notes:    
 
 
-1) There is a very large spread in the transcription values for each protein. For example, some flavodoxin transcripts are orders of magnitude higher than other flavodoxin transcripts. What would be the best way to separate these? I noticed the trends can change if I choose to plot only the ones that have high values or only the ones that have low values. 
+1) There is a very large spread in the expression values for each transcript For example, some flavodoxin transcripts are orders of magnitude higher than other flavodoxin transcripts. What would be the best way to separate these? I noticed the trends can change if I choose to plot only the ones that have high values or only the ones that have low values. I ended up plotting Log10 values for now.  
 
 
 
 ##Volcano 
-```{r}
+```{r eval=FALSE, include=FALSE}
 with(ORF, plot(X12_vs_13.log2fc, -log10(X12_vs_13.fdr), pch=20, main="Volcano plot", xlim=c(-20,20)))
-
 
 with(subset(ORF, X12_vs_13.fdr<.05 ), points(X12_vs_13.log2fc, -log10(X12_vs_13.fdr), pch=20, col="red"))
 
 with(subset(ORF, abs(X12_vs_13.log2fc)>1), points(X12_vs_13.log2fc, -log10(X12_vs_13.fdr), pch=20, col="orange"))
 
 with(subset(ORF, X12_vs_13.fdr<.05 & abs(X12_vs_13.log2fc)>1), points(X12_vs_13.log2fc, -log10(X12_vs_13.fdr), pch=20, col="green"))
-
 
 with(subset(ORF, X12_vs_13.fdr<.05 & abs(X12_vs_13.log2fc)>1), textxy(X12_vs_13.log2fc, -log10(X12_vs_13.fdr), labs=orf_id, cex=.8))
 
@@ -81,124 +81,184 @@ with(subset(ORF, X12_vs_13.fdr<.05 & abs(X12_vs_13.log2fc)>1), textxy(X12_vs_13.
 
 
 ##Volcano  
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 #if i want to filter out the dataset and look for something in specific
 #ISIP1volcano =  dplyr::filter (ORF, grepl('ISIP1|flavodoxin', kegg_desc))
 
-#this combines the names of from all of the dataset
-ORF$name <- paste(ORF$kegg_desc, ORF$KO_desc, ORF$KO_pathway, ORF$KOG_desc, ORF1$KOG_class, ORF1$best_hit_annotation, ORF1$PFams_desc, ORF1$TIGRFams_desc)
-
-
-ggplot (data = volcano, aes(x= Fold, y=-log10(FDR), color= group)) +
-  geom_point (alpha=0.9, size = 1.75)+
-  geom_hline (yintercept = 1.3, col = "blue", lty = 2, lwd=1 )+
-  geom_vline (xintercept = c(-1,1), col = "blue", lty = 2, lwd=1 )
-
-
-#interactive plot 
-plot_ly(data = ISIP1volcano, x = ISIP1volcano$X12_vs_13.log2fc, y = -log10(ISIP1volcano$X12_vs_13.fdr), text = ISIP1volcano$kegg_desc, mode = "markers", color = "black")%>% 
-  layout(title ="Volcano Plot")%>%
-  layout(annotations = ISIP1volcano$kegg_desc)
-
-#plot is failing, so the widget helps.
-x = plot_ly(data = ORF, x = ORF$X12_vs_18.log2fc, y = -log10(ORF$X12_vs_18.fdr), text = ORF$name, mode = "markers", color = "red")%>% 
-  layout(title ="Volcano Plot")%>%
-  layout(annotations = ORF$name)
-htmlwidgets::saveWidget(x, "x.html", selfcontained = FALSE)
-
-
-### adding color 
 #volcano =  dplyr::filter (ORF, grepl('ISIP|flavodoxin|ferritin|Ferritin', kegg_desc))
 
-volcano <- ORF[c("name", "X12_vs_13.log2fc", "X12_vs_13.fdr")]
-names(volcano) <- c("gene", "Fold", "FDR")
-volcano ["group"] <- "notsignificant"
+volcanoplot("X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")
+volcanoplot("X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")
+volcanoplot("X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
+volcanoplot("X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
+volcanoplot("X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
+volcanoplot("X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
+volcanoplot("X12_vs_18.log2fc", "X12_vs_18.fdr", "B12 Test: 0C_VS_B12-0C")
+volcanoplot("X13_vs_19.log2fc", "X13_vs_19.fdr", "B12 Test: Fe0C_VS_Fe+B12-0C")
+volcanoplot("X12_vs_19.log2fc", "X12_vs_19.fdr", "B12 Test: 0C_VS_Fe+B12-0C")
+volcanoplot("X13_vs_18.log2fc", "X13_vs_18.fdr", "B12 Test: Fe0C_VS_B12-0C")
+volcanoplot("X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
+volcanoplot("X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
+```
 
-#significant but not large enough fold change
-volcano [which(volcano['FDR'] < 0.05 & abs(volcano['Fold']) < 1), "group"]<- "significant" 
-# large enough fold change, not significant
-volcano [which(volcano ['FDR'] > 0.05 & abs(volcano["Fold"])> 1), "group"] <- "foldchange"
+```{r eval=FALSE, include=FALSE}
+volcanoplotinteractive("X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")
+volcanoplotinteractive("X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")
+volcanoplotinteractive("X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
+volcanoplotinteractive("X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
+volcanoplotinteractive("X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
+volcanoplotinteractive("X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
+volcanoplotinteractive("X12_vs_18.log2fc", "X12_vs_18.fdr", "B12 Test: 0C_VS_B12-0C")
+volcanoplotinteractive("X13_vs_19.log2fc", "X13_vs_19.fdr", "B12 Test: Fe0C_VS_Fe+B12-0C")
+volcanoplotinteractive("X12_vs_19.log2fc", "X12_vs_19.fdr", "B12 Test: 0C_VS_Fe+B12-0C")
+volcanoplotinteractive("X13_vs_18.log2fc", "X13_vs_18.fdr", "B12 Test: Fe0C_VS_B12-0C")
+volcanoplotinteractive("X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
+volcanoplotinteractive("X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
 
-#Significant and fold change
-volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 1), "group"] <- "significantfoldchange"
-
-
-plot_ly(data = volcano, x = volcano$Fold, y = -log10(volcano$FDR), text = volcano$gene, mode = "markers", color = volcano$group) %>% 
-  layout(title ="Volcano Plot")
+## if I want to label points: 
+#geom_text(aes(label=ifelse(FDR<0.05,as.character(gene),'')),hjust=0,vjust=0)
 ```
 
 
 
+#interactive volcano plot 
+```{r eval=FALSE, include=FALSE}
 
+#plot_ly(data = ISIP1volcano, x = ISIP1volcano$X12_vs_13.log2fc, y = -log10(ISIP1volcano$X12_vs_13.fdr), text = ISIP1volcano$kegg_desc, mode = "markers", color = "black")%>% 
+  #layout(title ="Volcano Plot")%>%
+  #layout(annotations = ISIP1volcano$kegg_desc)
 
+#plot is failing, so the widget helps.
+#x = plot_ly(data = ORF, x = ORF$X12_vs_18.log2fc, y = -log10(ORF$X12_vs_18.fdr), text = ORF$name, mode = "markers", color = "red")%>% 
+  #layout(title ="Volcano Plot")%>%
+  #layout(annotations = ORF$name)
+#htmlwidgets::saveWidget(x, "x.html", selfcontained = FALSE)
 
+volcanoplotinteractive("X13_vs_18.log2fc","X13_vs_18.fdr")
 
+volcano <- ORF[c("orf_id", "X13_vs_18.log2fc", "X13_vs_18.fdr")]
+  names(volcano) <- c("gene", "Fold", "FDR")
+  
+  volcano ["group"] <- "nofoldchange_notsignificant"
+  
+  ### adding color: this categorizes the data based on significance
+  #significant but not large enough fold change
+  volcano [which(volcano['FDR'] < 0.05 & abs(volcano['Fold']) < 1), "group"]<- "nofoldchange_significant" 
+  # large enough fold change, not significant
+  volcano [which(volcano ['FDR'] > 0.05 & abs(volcano['Fold'])> 1), "group"] <- "foldchange_notsignificant"
+  #Significant and fold change
+  volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 1), "group"] <- "foldchange_significant"
+  
+  
+  
+top_peaks <- volcano[with(volcano, order(FDR, Fold)),][1:10,]
 
+top_peaks <- rbind(top_peaks, volcano[with(volcano, order(FDR,-Fold)),][1:10,])
+  
+a <- list()
+for (i in seq_len(nrow(top_peaks))) {
+  m <- top_peaks[i, ]
+  a[[i]] <- list(
+    x = m[["Fold"]],
+    y = -log10(m[["FDR"]]),
+    text = m[["gene"]],
+    xref = "x",
+    yref = "y",
+    showarrow = TRUE,
+    arrowhead = 0.5,
+    ax = 20,
+    ay = -40
+  )
+}
+  
+plot_ly(data = volcano, x = volcano$Fold, y = -log10(volcano$FDR), text = volcano$gene, mode = "markers", color = volcano$group) %>% 
+  layout(title ="Volcano Plot")%>%
+layout (annotations = a)
+```
 
 
 Flavodoxin
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 flavodoxin <- dplyr::filter (ORF2, grepl('flavodoxin|Flavodoxin', name))
-
 heatmap(data, flavodoxin, "flavodoxin")
-heatmap_unclustered(data, flavodoxin, "flavodoxin")
-
+#heatmap_unclustered(data, flavodoxin, "flavodoxin")
 xyplotconcise(flavodoxin,"Flavodoxin")
-xyplots(flavodoxin, "Flavodoxin", "flavodoxinmean", 0, 0.002)
-ggplotly(p)
-
-flavmelt <-  melt (data = flavodoxin,id.vars = "name", measure.vars = c(2:28))
-
-x= ggplot(flavmelt, aes(x=variable, y=value, colour = name ))+
-          geom_point()+
-          geom_line(aes(group=name))+
-          xlab ("Treatmet")+
-          ylab ("Value(Log10)")+
-          ggtitle("title")+
-          theme_bw()+
-          theme(plot.title = element_text(hjust = 0.5))+
-          theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
-          scale_y_log10()+
-          theme(legend.position = "none")
-
-ggplotly(x)
-
 ``` 
+
+```{r eval=FALSE, include=FALSE}
+
+flavodoxin <- dplyr::filter (ORF, grepl('flavodoxin|Flavodoxin', name))
+
+flavodoxin <- flavodoxin[c("name", "X13_vs_18.log2fc", "X13_vs_18.fdr")]
+  names(flavodoxin) <- c("gene", "Fold", "FDR")
+  
+  flavodoxin ["group"] <- "nofoldchange_notsignificant"
+  
+  ### adding color: this categorizes the data based on significance
+  #significant but not large enough fold change
+  flavodoxin [which(flavodoxin['FDR'] < 0.05 & abs(flavodoxin['Fold']) < 1), "group"]<- "nofoldchange_significant" 
+  # large enough fold change, not significant
+  flavodoxin [which(flavodoxin ['FDR'] > 0.05 & abs(flavodoxin['Fold'])> 1), "group"] <- "foldchange_notsignificant"
+  #Significant and fold change
+  flavodoxin [which(flavodoxin ['FDR'] < 0.05 & abs(flavodoxin['Fold']) > 1), "group"] <- "foldchange_significant"
+  
+top_peaks <- flavodoxin[with(flavodoxin, order(FDR, Fold)),][1:10,]
+
+top_peaks <- rbind(top_peaks, flavodoxin[with(flavodoxin, order(FDR,-Fold)),][1:10,])
+
+a <- list()
+for (i in seq_len(nrow(top_peaks))) {
+  m <- top_peaks[i, ]
+  a[[i]] <- list(
+    x = m[["Fold"]],
+    y = -log10(m[["FDR"]]),
+    text = m[["gene"]],
+    xref = "x",
+    yref = "y",
+    showarrow = TRUE,
+    arrowhead = 0.5,
+    ax = 20,
+    ay = -40
+  )
+}
+
+plot_ly(data = flavodoxin, x = flavodoxin$Fold, y = -log10(flavodoxin$FDR), text = flavodoxin$gene, mode = "markers", color = flavodoxin$group) %>% 
+  layout(title ="Volcano Plot")%>%
+layout (annotations = a)
+```
+
 
 Ferredoxin
 ```{r}
 ferredoxin <- dplyr::filter (ORF2, grepl('ferredoxin|Ferredoxin', name))
 
-heatmap_unclustered(data, ferredoxin, "ferredoxin")
-
-xyplots(ferredoxin, "ferredoxin", "ferredoxinmean", 0, 0.006)
-
-p <- xyplotconcise(ferredoxin,"Ferredoxin")
-
-ggplotly(p)
+heatmap(data, ferredoxin, "ferredoxin")
+xyplotconcise(ferredoxin, "Ferredoxin")
 ```
 
-Ferritin - Iron storage protein
+
+Ferritin 
 ```{r}
 Ferritin <- dplyr::filter (ORF2, grepl('ferritin|Ferritin', name))
+heatmap(data, Ferritin, "ferritin|Ferritin")
+
 xyplotconcise(Ferritin, "Ferritin")
 ```
 
+
 ISIPs -    
-It seems like ISIP1 has the biggest response to 
+It seems like ISIP1 has the biggest response  
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ISIP <- dplyr::filter (ORF2, grepl('ISIP', name))
 #heatmap(data, ISIP1, "ISIP")
 #xyplots(ISIP1, "ISIP1", "ISIP1_treatment_mean", 0, 0.05)
 xyplotconcise(ISIP,"All of ISIPs")
 
-
 ISIP1 <- dplyr::filter (ORF2, grepl('ISIP1', name))
 xyplotconcise(ISIP1,"ISIP1")
 
 ISIP2 <- dplyr::filter (ORF2, grepl('ISIP2', name))
 xyplotconcise(ISIP2,"ISIP2A")
-
 
 ISIP3 <- dplyr::filter (ORF2, grepl('ISIP3', name))
 xyplotconcise(ISIP2,"ISIP3")
@@ -208,20 +268,13 @@ HeatShock
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 heatshock <- dplyr::filter (ORF2, grepl('PF00011|Heat.shock|heatshock|HSP', name))
 
-heatmap_unclustered(data, heatshock, "PF00011")
-
-
-xyplots(heatshock, "heatshockproteins", "heatshockproteinsmean", 0, 0.002)
-
-
+#heatmap_unclustered(data, heatshock, "PF00011")
 
 #heatshock <- dplyr::filter (ORF2, grepl('HSP|heatshock|heat.shock.protein|heat', name))
 #xyplotconcise(heatshock,"HSP70")
 
-
 HSP20 <- dplyr::filter (ORF2, grepl('HSP20C', name))
 xyplotconcise(HSP20,"HSP20")
-
 
 HSP70 <- dplyr::filter (ORF2, grepl('HSP70_1|HSP70_2', name))
 #heatmap(data, HSP70, "HSP70")
@@ -246,37 +299,27 @@ antifreeze <- dplyr::filter (ORF2, grepl('cold.shock|HSP60', name))
 
 heatmap_unclustered(data, heatshock, "HSP60")
 
-xyplots(antifreeze, "antifreezeprotein", "antifreezeproteinmean", 0, 0.01)
-
-scatterplot3d(antifreeze[13:15], 
-              angle = 20)
+#scatterplot3d(antifreeze[13:15], 
+              #angle = 20)
 ```
 
 B12
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-MetE <- dplyr::filter (ORF2, grepl('independent', name))
-fixdata(MetE, 'independent', "metE", "MetEmean")
-
-
 MetH  <- dplyr::filter (ORF2, grepl('MetH|metH', name))
-fixdata(MetH, 'metH|MetH', "metH", "MetHmean")
 
 
-MetH  <- dplyr::filter (ORF2, grepl('METH|metH', name))
-#heatmap(data, MetH, "metH|METH")
-#xyplots(MetH, "MetH", "MetH_treatment_mean", 0, 0.01)
-xyplotconcise(MetH,"MetH")
-
-
-MetE<- dplyr::filter (ORF2, grepl('Cobalamin.independent', name))
+MetE <- dplyr::filter (ORF2, grepl('Cobalamin.independent|cobalamin.independent', name))
 
 CBA1 <- dplyr::filter (ORF2, grepl('CBA1', name))
 
 MetE_CBA1 <- dplyr::filter (ORF2, grepl('Cobalamin.independent|CBA1', name))
 
+#heatmap(data, MetH, "metH|METH")
+#xyplots(MetH, "MetH", "MetH_treatment_mean", 0, 0.01)
 #heatmap(data, MetE, "Cobalamin|CBA")
 #xyplots(MetE, "MetE+CBA1", "MetE+CBA1_treatment_mean", 0, 0.01)
 
+xyplotconcise(MetH,"MetH")
 xyplotconcise(MetE,"MetE")
 xyplotconcise(CBA1,"CBA1")
 xyplotconcise(MetE_CBA1,"MetE+CBA1")
@@ -291,17 +334,18 @@ Nitr <- dplyr::filter (ORF2, grepl('nitrite|Nitrite', name))
 
 xyplotconcise(Nitr,"Nitrite Reductase")
 
-Nitr <- dplyr::filter (ORF2, grepl('nitrate|Nitrate|nitrite|Nitrite', name))
+#Nitr <- dplyr::filter (ORF2, grepl('nitrate|Nitrate|nitrite|Nitrite', name))
 
-heatmap(group, ORF2, 'NIR')
+#heatmap(group, ORF2, 'NIR')
 
-heatmap_unclustered(group, ORF2, 'NIR_2')
+#heatmap_unclustered(group, ORF2, 'NIR_2')
 ```
+
 
 Rubisco
 ```{r}
-rubisco <- dplyr::filter (ORF2, grepl('RBL', name))
-fixdata(rubisco, 'RBL', "Rubisco", "Rubiscomean")
+#rubisco <- dplyr::filter (ORF2, grepl('RBL', name))
+#fixdata(rubisco, 'RBL', "Rubisco", "Rubiscomean")
 
 rubisco <- dplyr::filter (ORF2,grepl('RBL|RuBisCO|rubisco|RUBISCO',name))
 xyplotconcise(rubisco, "RuBisCO")
@@ -318,10 +362,12 @@ CP47 <- dplyr::filter (ORF2, grepl('CP47', name))
 #heatmap_unclustered(group, CP47, 'CP47')
 #CP47 or CPa-1, (encoded by PsbB gene): Proximal antennae  
 xyplotconcise(CP47, "CP47")
-heatmap(grou, CP47, 'CP47')
+xyplotsmalldata(CP47,"CP47")
+#heatmap(grou, CP47, 'CP47')
 
 CP43 <- dplyr::filter (ORF2, grepl('CP43|psbC', name))
 xyplotsmalldata(CP43,"CP43")
+
 xyplotconcise(CP43, "CP43")
 #CP43,or CPa-2, (encoded by PsbC gene): Proximal antennae 
 
@@ -337,16 +383,15 @@ heatmap(chloro, ORF2, 'PsbO')
 
 heatmap(chloro, ORF2, 'CP47')
 
-
-PsbY <- dplyr::filter (ORF2, grepl('PsbO', name))
-
-fixdata(PsbY, 'PsbO', "PsbY", "PsbYmean")
+#PsbY <- dplyr::filter (ORF2, grepl('PsbO', name))
+#fixdata(PsbY, 'PsbO', "PsbY", "PsbYmean")
 ```
 
 Photosystem II Light harvesting
 ```{r}
 Lhcf <- dplyr::filter (ORF2, grepl('Lhcf|lhcf', name))
 xyplotconcise(Lhcf, "All of Light Harvesting Complexes F ")
+xyplotsmalldata(Lhcf, "blalala")
 
 Lhcf1 <- dplyr::filter (ORF2, grepl('Lhcf1', name))
 xyplotconcise(Lhcf1, "LHCF1")
@@ -355,10 +400,11 @@ Lhcf4 <- dplyr::filter (ORF2, grepl('Lhcf4', name))
 xyplotconcise(Lhcf4, "LHCF4")
 
 Lhcf7 <- dplyr::filter (ORF2, grepl('Lhcf7', name))
-xyplotconcise(Lhcf7, "LHCF7")
+xyplotsmalldata(Lhcf7, "LHCF7")
 
 Lhcf9 <- dplyr::filter (ORF2, grepl('Lhcf9', name))
 xyplotconcise(Lhcf9, "LHCF9")
+xyplotsmalldata(Lhcf9, "LHCF9")
 
 Lhcf16 <- dplyr::filter (ORF2, grepl('Lhcf16', name))
 xyplotconcise(Lhcf16, "LHCF16")
@@ -392,12 +438,9 @@ D2 <- dplyr::filter (ORF2, grepl('center.D2|protein.D2|em.II.D2', name))
 xyplotsmalldata(D2,"D2")
 xyplotconcise(D2, "D2")
 
-
 Psb <- dplyr::filter (ORF2, grepl('PsbQ|PsbO|PsbP', name))
 xyplotsmalldata(Psb,"PSII oxygen-evolving complex (Psb O,P,Q)")
 xyplotconcise(Psb, "PSII oxygen-evolving complex (Psb O,P,Q)")
-
-
 
 PsbO <- dplyr::filter (ORF2, grepl('PsbO', name))
 xyplotsmalldata(PsbO,"Manganese Stabilizing Protein (PsbO)")
@@ -408,9 +451,6 @@ xyplotconcise(PsbP, "PsbP")
 
 PsbQ <- dplyr::filter (ORF2, grepl('PsbQ', name))
 xyplotsmalldata(PsbQ,"PsbQ")
-xyplotconcise(PsbQ, "PsbQ")
-
-
 
 Cyt_c550 <- dplyr::filter (ORF2, grepl('c.550|psbV', name))
 xyplotsmalldata(Cyt_c550,"Cyt_c550")
@@ -420,15 +460,15 @@ xyplotconcise(Cyt_c550, "Cyt_c550")
 #unclear function, likely involved in photoprotection
 Cyt_b559 <- dplyr::filter (ORF2, grepl('psbE|psbF|PF00284', name))
 xyplotconcise(Cyt_b559, "Cyt_b559")
-heatmap_unclustered(group, Cytb559, 'b559|psbF')
-xyplotsmalldata(Cyt_b559, "cytoc")
+heatmap_unclustered(group, Cyt_b559, 'b559|psbF')
+xyplotsmalldata(Cyt_b559, "cytoc_b559")
 ```
 
 
 Plastoquinone
 ```{r eval=FALSE, include=FALSE}
 PQ <- dplyr::filter (ORF2, grepl('plastoquinone', name))
-xyplotconcise(PQ, "CytC")
+xyplotconcise(PQ, "Plastoquinone")
 
 #NDH <- dplyr::filter (ORF2, grepl('NDH', name))
 #xyplotconcise(NDH, "CytC")
@@ -439,13 +479,13 @@ Cytochrome
 ```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 Rieske <- dplyr::filter (ORF2, grepl('Rieske|rieske', name))
 xyplotconcise(Rieske,"Rieske iron-sulfur protein")
+xyplotsmalldata(Rieske, "Rieske")
 
 CytC <- dplyr::filter (ORF2, grepl('fumarate', name))
 xyplotconcise(CytC,"CytC")
 
 #Cytochrome <- dplyr::filter (ORF2, grepl('cytochrome|Cytochrome|cytoc|Cytoc', name))
 #xyplotconcise(Cytochrome, "Cytochrome")
-
 
 #CPF <- dplyr::filter (ORF2, grepl('CPF', name))
 #xyplotsmalldata(CPF,"CP43")
@@ -463,36 +503,28 @@ xyplotconcise(Plasto, "Plastocyanin")
 
 Photosystem_I
 ```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
-
 P700 <- dplyr::filter (ORF2, grepl('P700', name))
 xyplotconcise(P700, "P700")
 
-
-
 PsaA <- dplyr::filter (ORF2, grepl('PsaA', name))
 xyplotconcise(PsaA, "PsaA")
-
+xyplotsmalldata(PsaA, "PsaA")
 
 PsaB <- dplyr::filter (ORF2, grepl('PsaB', name))
 xyplotconcise(PsaB, "PsaB")
-
+xyplotsmalldata(PsaB, "PsaB")
 
 PsaE <- dplyr::filter (ORF2, grepl('PsaE', name))
 xyplotconcise(PsaE, "PsaE")
 
-
 LHCA <- dplyr::filter (ORF2, grepl('lhcA', name))
 xyplotsmalldata(LHCA, "PSI LHC-A")
-xyplotconcise(LHCA, "PsaE")
-
-
+xyplotconcise(LHCA, "PSI- LHCA")
 
 heatmap_unclustered(chloro, ORF2, 'PsaA')
 
 heatmap_unclustered(chloro, ORF2, 'PsaB')
 
 heatmap(chloro, ORF2, 'PsaE')
-
-heatmap(chloro, ORF2, 'CLPC')
 ```
 

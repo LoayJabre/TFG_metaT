@@ -38,6 +38,57 @@ heatmap_unclustered <- function (group, dataset, proteinname){
             }
 ###``````````````````````````````````````````````````````````````###
 
+volcanoplot <- function(foldchange, FDR, graphtitle){
+  
+  volcano <- ORF[c("name", foldchange, FDR)]
+  names(volcano) <- c("gene", "Fold", "FDR")
+  volcano ["group"] <- "nofoldchange_notsignificant"
+  
+  ### adding color: this categorizes the data based on significance
+  #significant but not large enough fold change
+  volcano [which(volcano['FDR'] < 0.05 & abs(volcano['Fold']) < 1), "group"]<- "nofoldchange_significant" 
+  
+  # large enough fold change, not significant
+  volcano [which(volcano ['FDR'] > 0.05 & abs(volcano['Fold'])> 1), "group"] <- "foldchange_notsignificant"
+  
+  #Significant and fold change
+  volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 1), "group"] <- "foldchange_significant"
+  
+  ggplot (data = volcano, aes(x= Fold, y=-log10(FDR), color= group)) +
+    geom_point (alpha=0.7, size = 2,shape = 19)+
+    geom_hline (yintercept = 1.3, col = "blue", lty = 2, lwd=1 )+
+    geom_vline (xintercept = c(-1,1), col = "blue", lty = 2, lwd=1 )+
+    xlab("Log2 Fold Change")+ ylab("-Log10 FDR")+
+    ggtitle(graphtitle)+
+    theme_bw()+
+    theme(plot.title = element_text(hjust = 0.5))
+}
+
+
+
+###``````````````````````````````````````````````````###
+#this is an interactive volcano plot function 
+
+volcanoplotinteractive <- function(Fold, FDR, volcanontitle){
+volcano <- ORF[c("name", Fold, FDR)]
+names(volcano) <- c("gene", "Fold", "FDR")
+
+volcano ["group"] <- "nofoldchange_notsignificant"
+
+### adding color: this categorizes the data based on significance
+#significant but not large enough fold change
+volcano [which(volcano['FDR'] < 0.05 & abs(volcano['Fold']) < 1), "group"]<- "nofoldchange_significant" 
+# large enough fold change, not significant
+volcano [which(volcano ['FDR'] > 0.05 & abs(volcano['Fold'])> 1), "group"] <- "foldchange_notsignificant"
+#Significant and fold change
+volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 1), "group"] <- "foldchange_significant"
+
+plot_ly(data = volcano, x = volcano$Fold, y = -log10(volcano$FDR), text = volcano$gene, mode = "markers", color = volcano$group) %>% 
+  layout(title = volcanontitle)
+}
+
+###``````````````````````````````````````````````````###
+
 
 #This function creates means of the the three treatments and plots the log values 
 xyplotconcise <- function(dataset, title){
@@ -78,7 +129,7 @@ xyplotconcise <- function(dataset, title){
           stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.25)+
           stat_summary(fun.data =  mean_se, geom = "errorbar", colour = "black")+
           xlab ("Treatmet")+
-          ylab ("Value(Log10)")+
+          ylab ("Expression-Value_Log10")+
           ggtitle(title)+
           theme_bw()+
           theme(plot.title = element_text(hjust = 0.5))+
@@ -132,8 +183,21 @@ xyplotsmalldata <- function(dataset, title){
           theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
           scale_y_log10()+
           theme(legend.position = "none"))
+  
+  print(ggplot(datasetmeanmelt, aes(x=variable, y=value, colour = name ))+
+          geom_point(alpha=0.9)+
+          stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.25)+
+          stat_summary(fun.data =  mean_se, geom = "errorbar", colour = "black")+
+          xlab ("Treatmet")+
+          ylab ("Expression-Value_Log10")+
+          ggtitle(title)+
+          theme_bw()+
+          theme(plot.title = element_text(hjust = 0.5))+
+          theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
+          scale_y_log10()+
+          theme(legend.position = "none"))
 }
-
+  
 ###``````````````````````````````````````````````````````````````````````````````###
 
 #simple line and point plot of all the raw flavodoxin data under the different treatments. 
