@@ -39,20 +39,19 @@ heatmap_unclustered <- function (group, dataset, proteinname){
 ###``````````````````````````````````````````````````````````````###
 
 volcanoplot <- function(foldchange, FDR, graphtitle){
-  
-  volcano <- ORF[c("name", foldchange, FDR)]
+  volcano <- ORF[c("orf_id", foldchange, FDR)]
   names(volcano) <- c("gene", "Fold", "FDR")
-  volcano ["group"] <- "nofoldchange_notsignificant"
-  
+  volcano ["group"] <- "no-fold-change"
+
   ### adding color: this categorizes the data based on significance
   #significant but not large enough fold change
   volcano [which(volcano['FDR'] < 0.05 & abs(volcano['Fold']) < 1), "group"]<- "nofoldchange_significant" 
   
   # large enough fold change, not significant
-  volcano [which(volcano ['FDR'] > 0.05 & abs(volcano['Fold'])> 1), "group"] <- "foldchange_notsignificant"
+  volcano [which(volcano ['FDR'] > 0.05 & abs(volcano['Fold'])> 1), "group"] <- "fold-change_notsignificant"
   
   #Significant and fold change
-  volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 1), "group"] <- "foldchange_significant"
+  volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 1), "group"] <- "fold-change_significant"
   
   ggplot (data = volcano, aes(x= Fold, y=-log10(FDR), color= group)) +
     geom_point (alpha=0.7, size = 2,shape = 19)+
@@ -62,7 +61,13 @@ volcanoplot <- function(foldchange, FDR, graphtitle){
     ggtitle(graphtitle)+
     theme_bw()+
     theme(plot.title = element_text(hjust = 0.5))
+  #+
+    #geom_text(aes(label=ifelse(FDR<0.05,as.character(gene),'')),hjust=0,vjust=0, size = 2.6)
 }
+    
+
+
+
 
 
 
@@ -70,7 +75,7 @@ volcanoplot <- function(foldchange, FDR, graphtitle){
 #this is an interactive volcano plot function 
 
 volcanoplotinteractive <- function(Fold, FDR, volcanontitle){
-volcano <- ORF[c("name", Fold, FDR)]
+volcano <- ISIP[c("name", Fold, FDR)]
 names(volcano) <- c("gene", "Fold", "FDR")
 
 volcano ["group"] <- "nofoldchange_notsignificant"
@@ -83,13 +88,85 @@ volcano [which(volcano ['FDR'] > 0.05 & abs(volcano['Fold'])> 1), "group"] <- "f
 #Significant and fold change
 volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 1), "group"] <- "foldchange_significant"
 
+x <- list (title ="Log2 Fold Change")
+y <- list (title = "-Log10 FDR")
 plot_ly(data = volcano, x = volcano$Fold, y = -log10(volcano$FDR), text = volcano$gene, mode = "markers", color = volcano$group) %>% 
-  layout(title = volcanontitle)
+  layout(title = volcanontitle)%>%
+  layout (xaxis = x, yaxis = y)
+
 }
 
 ###``````````````````````````````````````````````````###
 
 
+
+
+#This function creates means of the the three treatments and plots the log values 
+xyplotISIP <- function(dataset, title){
+  
+  datasetmelt <-  melt (data = dataset,id.vars = "name", measure.vars = c(2:28))
+  
+  colname <- "mean"
+  i=0
+  while (i < 7){
+    colname <- paste(colname, i)
+    col1 = 2+(i*3)
+    col2 = 4+(i*3)
+    dataset[[colname]] <- rowMeans( dataset[, c(col1:col2)] ) 
+    i <- i+1
+  }
+  
+  datasetmean <- dataset [-c(2:28)]
+  names(datasetmean) <- c("name", "T0","0.5C", "Fe_0.5C", "3C", "Fe_3C", "6C", "Fe_6C" )
+  
+  datasetmeanmelt <-  melt (data = datasetmean,id.vars = "name", measure.vars = c(2:10)) 
+  
+  
+  
+  print (ggplot(datasetmelt, aes(x=variable, y=value, colour = name ))+
+           geom_point(alpha=0.9)+
+           stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.25)+
+           stat_summary(fun.data =  mean_se, geom = "errorbar", colour = "black")+
+           xlab ("Treatmet")+
+           ylab ("Expression-Value")+
+           ggtitle(title)+
+           theme_bw()+
+           theme(plot.title = element_text(hjust = 0.5))+
+           theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
+           theme(legend.position = "none"))
+  
+  
+  print(ggplot(datasetmeanmelt, aes(x=variable, y=value, colour = name ))+
+          geom_point(alpha=0.9)+
+          stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.25)+
+          stat_summary(fun.data =  mean_se, geom = "errorbar", colour = "black")+
+          xlab ("Treatmet")+
+          ylab ("Expression-Value_Log10")+
+          ggtitle(title)+
+          theme_bw()+
+          theme(plot.title = element_text(hjust = 0.5))+
+          theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
+          scale_y_log10()+
+          theme(legend.position = "none"))
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###``````````````````````````````````````````````
 #This function creates means of the the three treatments and plots the log values 
 xyplotconcise <- function(dataset, title){
   
@@ -117,6 +194,7 @@ xyplotconcise <- function(dataset, title){
            stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.25)+
            stat_summary(fun.data =  mean_se, geom = "errorbar", colour = "black")+
            xlab ("Treatmet")+
+           ylab ("Expression-Value")+
            ggtitle(title)+
            theme_bw()+
            theme(plot.title = element_text(hjust = 0.5))+
@@ -170,8 +248,7 @@ xyplotsmalldata <- function(dataset, title){
            theme(plot.title = element_text(hjust = 0.5))+
            theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
            theme(legend.position = "none"))
-  
-  
+
   print(ggplot(datasetmeanmelt, aes(x=variable, y=value, colour = name ))+
           geom_point()+
           geom_line(aes(group=name))+

@@ -36,14 +36,15 @@ library(htmlwidgets)
 source("fragtranscript_functions.R")
 ```
 
-Analysis by ORF   
 ```{r message=FALSE, warning=FALSE, include=FALSE}
+#Analysis by ORF   
+
 ORF <- read.csv("ORF.csv", header = TRUE, sep = ",")
-ORF1 <- ORF [-c(1:4, 6,7, 10:12, 15:21, 23:26, 28, 30:34, 35:46,50:58, 83:106)]
+ORF1 <- ORF [-c(2:4, 6,7, 10:12, 15:21, 23:26, 28, 30:34, 35:46,50:58, 83:106)]
 
-ORF1$name <- paste(ORF1$kegg_desc, ORF1$KO_desc, ORF1$KO_pathway, ORF1$KOG_desc, ORF1$KOG_class, ORF1$best_hit_annotation, ORF1$PFams_desc, ORF1$TIGRFams_desc)
+ORF1$name <- paste(ORF1$orf_id, ORF1$kegg_desc, ORF1$KO_desc, ORF1$KO_pathway, ORF1$KOG_desc, ORF1$KOG_class, ORF1$best_hit_annotation, ORF1$PFams_desc, ORF1$TIGRFams_desc)
 
-ORF2 <- ORF1 [-c(1:8)]
+ORF2 <- ORF1 [-c(1:9)]
 
 ORF2 <- ORF2 [c(28, 1:27)]
 
@@ -52,19 +53,17 @@ ORF2$name <- sub('[.]', '_', make.names(ORF2$name, unique = TRUE))
 names(ORF2)<- c("name", "A_T0", "B_T0", "C_T0", "A_B12_0.5", "B_B12_0.5", "C_B12_0.5", "A_B12Fe_0.5", "B_B12Fe_0.5", "C_B12Fe_0.5", "A_0.5", "B_0.5", "C_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_3", "B_3", "C_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_6", "B_6", "C_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
 
 #this combines the names of from all of the dataset
-ORF$name <- paste(ORF$kegg_desc, ORF$KO_desc, ORF$KO_pathway, ORF$KOG_desc, ORF1$KOG_class, ORF1$best_hit_annotation, ORF1$PFams_desc, ORF1$TIGRFams_desc)
+ORF$name <- paste(ORF$orf_id, ORF$kegg_desc, ORF$KO_desc, ORF$KO_pathway, ORF$KOG_desc, ORF1$KOG_class, ORF1$best_hit_annotation, ORF1$PFams_desc, ORF1$TIGRFams_desc)
 ```
 
+#Some notes:    
 
 
-Some notes:    
+1) There is a very large spread in the expression values for each transcript For example, some flavodoxin transcripts are orders of magnitude higher than other flavodoxin transcripts. What would be the best way to separate these? I noticed the trends can change if I choose to plot only the ones that have high values or only the ones that have low values. I ended up plotting Log10 values for now.      
 
 
-1) There is a very large spread in the expression values for each transcript For example, some flavodoxin transcripts are orders of magnitude higher than other flavodoxin transcripts. What would be the best way to separate these? I noticed the trends can change if I choose to plot only the ones that have high values or only the ones that have low values. I ended up plotting Log10 values for now.  
+2) There are some very apparent trends in the x-y plots. For example, Ferritin shows a strong positive response to Fe addition when you look at the x-y plots. However, this is not reflected in the volcano plots (not statistically significant). 
 
-
-
-##Volcano 
 ```{r eval=FALSE, include=FALSE}
 with(ORF, plot(X12_vs_13.log2fc, -log10(X12_vs_13.fdr), pch=20, main="Volcano plot", xlim=c(-20,20)))
 
@@ -80,7 +79,8 @@ with(subset(ORF, X12_vs_13.fdr<.05 & abs(X12_vs_13.log2fc)>1), textxy(X12_vs_13.
 
 
 
-##Volcano  
+The first set of plots are volcano plots comparing two treatments each. For example,the plot "Temp Test: 0C_VS_3C" looks at the transcripts that are negatively (negative Log2 fold change) and positively (positive Log2 fold change) expressed when temperature is increased from 0C to 3C. The dynamic plots are unusabley slow when they're here. But we can look at them individually if you like.  
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #if i want to filter out the dataset and look for something in specific
 #ISIP1volcano =  dplyr::filter (ORF, grepl('ISIP1|flavodoxin', kegg_desc))
@@ -120,8 +120,6 @@ volcanoplotinteractive("X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS
 ```
 
 
-
-#interactive volcano plot 
 ```{r eval=FALSE, include=FALSE}
 
 #plot_ly(data = ISIP1volcano, x = ISIP1volcano$X12_vs_13.log2fc, y = -log10(ISIP1volcano$X12_vs_13.fdr), text = ISIP1volcano$kegg_desc, mode = "markers", color = "black")%>% 
@@ -136,7 +134,7 @@ volcanoplotinteractive("X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS
 
 volcanoplotinteractive("X13_vs_18.log2fc","X13_vs_18.fdr")
 
-volcano <- ORF[c("orf_id", "X13_vs_18.log2fc", "X13_vs_18.fdr")]
+volcano <- ORF[c("name", "X13_vs_18.log2fc", "X13_vs_18.fdr")]
   names(volcano) <- c("gene", "Fold", "FDR")
   
   volcano ["group"] <- "nofoldchange_notsignificant"
@@ -148,6 +146,10 @@ volcano <- ORF[c("orf_id", "X13_vs_18.log2fc", "X13_vs_18.fdr")]
   volcano [which(volcano ['FDR'] > 0.05 & abs(volcano['Fold'])> 1), "group"] <- "foldchange_notsignificant"
   #Significant and fold change
   volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 1), "group"] <- "foldchange_significant"
+  
+volcano_significant <- dplyr::filter (volcano, grepl('foldchange_significant', group))
+
+  
   
   
   
@@ -177,10 +179,42 @@ layout (annotations = a)
 ```
 
 
-Flavodoxin
+         
+ The next set of plots are specific to transcripts that I thought would react to Fe, temperature and/or B12.     
+ 
+- The different colored dots/lines represent different ORFs of the same transcript.    For example, in the flavodoxin plots, all the yellow dots correspond to one flavodoxin ORF, all the blue dots correspond to another flavodoxin ORF etc.    
+
+- The black line connects the means of all the flavodoxin ORFs under a certain treatment.  
+
+- I also plotted a Log10 expression value because there is a large spread in these values. For example, some flavodoxin ORFs were 2 orders of magnitude higher than other flavodoxin ORFs. 
+
+
+
+#ISIPs -    
+It seems like ISIP1 has the largest response.   
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ISIP <- dplyr::filter (ORF2, grepl('ISIP|isip', name))
+ISIP <- ISIP [-c(5:10)]
+heatmap(data, ISIP, "ISIP1")
+#xyplots(ISIP1, "ISIP1", "ISIP1_treatment_mean", 0, 0.05)
+xyplotconcise(ISIP,"All of ISIPs")
+
+ISIP1 <- dplyr::filter (ORF2, grepl('ISIP1', name))
+p <- xyplotconcise(ISIP1,"ISIP1")
+ggplotly(p)
+
+ISIP2 <- dplyr::filter (ORF2, grepl('ISIP2', name))
+xyplotconcise(ISIP2,"ISIP2A")
+
+ISIP3 <- dplyr::filter (ORF2, grepl('ISIP3', name))
+xyplotconcise(ISIP2,"ISIP3")
+```
+         
+         
+#Flavodoxin
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 flavodoxin <- dplyr::filter (ORF2, grepl('flavodoxin|Flavodoxin', name))
-heatmap(data, flavodoxin, "flavodoxin")
+#heatmap(data, flavodoxin, "flavodoxin")
 #heatmap_unclustered(data, flavodoxin, "flavodoxin")
 xyplotconcise(flavodoxin,"Flavodoxin")
 ``` 
@@ -228,43 +262,27 @@ layout (annotations = a)
 ```
 
 
-Ferredoxin
-```{r}
+#Ferredoxin
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 ferredoxin <- dplyr::filter (ORF2, grepl('ferredoxin|Ferredoxin', name))
 
-heatmap(data, ferredoxin, "ferredoxin")
+#heatmap(data, ferredoxin, "ferredoxin")
 xyplotconcise(ferredoxin, "Ferredoxin")
 ```
 
 
-Ferritin 
-```{r}
-Ferritin <- dplyr::filter (ORF2, grepl('ferritin|Ferritin', name))
-heatmap(data, Ferritin, "ferritin|Ferritin")
-
-xyplotconcise(Ferritin, "Ferritin")
-```
-
-
-ISIPs -    
-It seems like ISIP1 has the biggest response  
+#Ferritin 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-ISIP <- dplyr::filter (ORF2, grepl('ISIP', name))
-#heatmap(data, ISIP1, "ISIP")
-#xyplots(ISIP1, "ISIP1", "ISIP1_treatment_mean", 0, 0.05)
-xyplotconcise(ISIP,"All of ISIPs")
+Ferritin <- dplyr::filter (ORF2, grepl('ferritin|Ferritin', name))
+#heatmap(data, Ferritin, "ferritin|Ferritin")
 
-ISIP1 <- dplyr::filter (ORF2, grepl('ISIP1', name))
-xyplotconcise(ISIP1,"ISIP1")
-
-ISIP2 <- dplyr::filter (ORF2, grepl('ISIP2', name))
-xyplotconcise(ISIP2,"ISIP2A")
-
-ISIP3 <- dplyr::filter (ORF2, grepl('ISIP3', name))
-xyplotconcise(ISIP2,"ISIP3")
+#xyplotconcise(Ferritin, "Ferritin")
+xyplotsmalldata(Ferritin, "Ferritin")
 ```
 
-HeatShock
+
+         
+#HeatShock 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 heatshock <- dplyr::filter (ORF2, grepl('PF00011|Heat.shock|heatshock|HSP', name))
 
@@ -285,8 +303,9 @@ HSP90 <- dplyr::filter (ORF2, grepl('HSP90', name))
 xyplotconcise(HSP90,"HSP90")
 #heatmap(data, HSP90, "HSP90")
 ```
-
-Cold
+      
+      
+#Cold Shock
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 antifreeze <- dplyr::filter (ORF2, grepl('cold.shock|antifreeze|cspD', name))
 #heatmap(data, heatshock, "HSP60")
@@ -297,19 +316,18 @@ xyplotconcise(antifreeze,"Cold Shock Proteins")
 
 antifreeze <- dplyr::filter (ORF2, grepl('cold.shock|HSP60', name))
 
-heatmap_unclustered(data, heatshock, "HSP60")
+#heatmap_unclustered(data, heatshock, "HSP60")
 
 #scatterplot3d(antifreeze[13:15], 
               #angle = 20)
 ```
-
-B12
+      
+      
+      
+#B12 Response
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 MetH  <- dplyr::filter (ORF2, grepl('MetH|metH', name))
-
-
 MetE <- dplyr::filter (ORF2, grepl('Cobalamin.independent|cobalamin.independent', name))
-
 CBA1 <- dplyr::filter (ORF2, grepl('CBA1', name))
 
 MetE_CBA1 <- dplyr::filter (ORF2, grepl('Cobalamin.independent|CBA1', name))
@@ -324,8 +342,10 @@ xyplotconcise(MetE,"MetE")
 xyplotconcise(CBA1,"CBA1")
 xyplotconcise(MetE_CBA1,"MetE+CBA1")
 ```
-
-Nitrite Reductase
+   
+   
+   
+#Nitrite Reductase
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 Nitr <- dplyr::filter (ORF2, grepl('nitrite|Nitrite', name))
 #heatmap(group, ORF2, 'NIR')
@@ -341,57 +361,23 @@ xyplotconcise(Nitr,"Nitrite Reductase")
 #heatmap_unclustered(group, ORF2, 'NIR_2')
 ```
 
-
-Rubisco
-```{r}
+  
+  
+#Rubisco
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 #rubisco <- dplyr::filter (ORF2, grepl('RBL', name))
 #fixdata(rubisco, 'RBL', "Rubisco", "Rubiscomean")
 
 rubisco <- dplyr::filter (ORF2,grepl('RBL|RuBisCO|rubisco|RUBISCO',name))
 xyplotconcise(rubisco, "RuBisCO")
 ```
-
-Photosystem II Antennae
-psbY : manganese binding protein of PSII
+   
+   
+   
+#Photosystem II Light harvesting
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-PsbY <- dplyr::filter (ORF2, grepl('PsbY', name))
-xyplotsmalldata(PsbY,"PsbY")
-
-CP47 <- dplyr::filter (ORF2, grepl('CP47', name))
-#xyplotsmalldata(CP47,"CP47")
-#heatmap_unclustered(group, CP47, 'CP47')
-#CP47 or CPa-1, (encoded by PsbB gene): Proximal antennae  
-xyplotconcise(CP47, "CP47")
-xyplotsmalldata(CP47,"CP47")
-#heatmap(grou, CP47, 'CP47')
-
-CP43 <- dplyr::filter (ORF2, grepl('CP43|psbC', name))
-xyplotsmalldata(CP43,"CP43")
-
-xyplotconcise(CP43, "CP43")
-#CP43,or CPa-2, (encoded by PsbC gene): Proximal antennae 
-
-heatmap(chloro, ORF2, 'Photosystem_II|photosystem_II|PSII|photosystemII')
-
-heatmap(chloro, ORF2, 'PsbA')
-
-heatmap_unclustered(chloro, ORF2, 'PsbY')
-
-heatmap_unclustered(chloro, ORF2, 'PsbD')
-
-heatmap(chloro, ORF2, 'PsbO')
-
-heatmap(chloro, ORF2, 'CP47')
-
-#PsbY <- dplyr::filter (ORF2, grepl('PsbO', name))
-#fixdata(PsbY, 'PsbO', "PsbY", "PsbYmean")
-```
-
-Photosystem II Light harvesting
-```{r}
 Lhcf <- dplyr::filter (ORF2, grepl('Lhcf|lhcf', name))
 xyplotconcise(Lhcf, "All of Light Harvesting Complexes F ")
-xyplotsmalldata(Lhcf, "blalala")
 
 Lhcf1 <- dplyr::filter (ORF2, grepl('Lhcf1', name))
 xyplotconcise(Lhcf1, "LHCF1")
@@ -404,7 +390,7 @@ xyplotsmalldata(Lhcf7, "LHCF7")
 
 Lhcf9 <- dplyr::filter (ORF2, grepl('Lhcf9', name))
 xyplotconcise(Lhcf9, "LHCF9")
-xyplotsmalldata(Lhcf9, "LHCF9")
+#xyplotsmalldata(Lhcf9, "LHCF9")
 
 Lhcf16 <- dplyr::filter (ORF2, grepl('Lhcf16', name))
 xyplotconcise(Lhcf16, "LHCF16")
@@ -415,9 +401,12 @@ xyplotconcise(Lhcf16, "LHCF16")
 #Lhca <- dplyr::filter (ORF2, grepl('Lhca', name))
 #xyplotconcise(Lhca, "fucoxanthin")
 ```
+  
+  
+#LI818 (Light harvesting complex X) -    
 
-LI818 (lhcx) - photoprotection / stress induced
-```{r}
+used in photoprotection / stress induced
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 Lhcx5 <- dplyr::filter (ORF2, grepl('lhcx5', name))
 xyplotconcise(Lhcx5, "LHCX5")
 
@@ -425,48 +414,92 @@ Lhcx6 <- dplyr::filter (ORF2, grepl('Lhcx6', name))
 xyplotconcise(Lhcx6, "LHCX6")
 ```
 
-Photosystem II Reaction Center 
-D1 (gene: PsbA), QB
-D2 (gene: PsbD), QA
-Cytochrome c550 (gene: PsbV)
-```{r eval=FALSE, include=FALSE}
+
+# Photosystem II Core Antennae        
+
+psbY is a manganese binding protein in PSII
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+PsbY <- dplyr::filter (ORF2, grepl('PsbY', name))
+xyplotsmalldata(PsbY,"PsbY")
+
+CP47 <- dplyr::filter (ORF2, grepl('CP47', name))
+#xyplotsmalldata(CP47,"CP47")
+#heatmap_unclustered(group, CP47, 'CP47')
+#CP47 or CPa-1, (encoded by PsbB gene): Proximal antennae  
+xyplotconcise(CP47, "CP47")
+#xyplotsmalldata(CP47,"CP47")
+#heatmap(grou, CP47, 'CP47')
+
+CP43 <- dplyr::filter (ORF2, grepl('CP43|psbC', name))
+xyplotsmalldata(CP43,"CP43")
+
+#xyplotconcise(CP43, "CP43")
+#CP43,or CPa-2, (encoded by PsbC gene): Proximal antennae 
+
+#heatmap(chloro, ORF2, 'Photosystem_II|photosystem_II|PSII|photosystemII')
+
+#heatmap(chloro, ORF2, 'PsbA')
+
+#heatmap_unclustered(chloro, ORF2, 'PsbY')
+
+#heatmap_unclustered(chloro, ORF2, 'PsbD')
+
+#heatmap(chloro, ORF2, 'PsbO')
+
+#heatmap(chloro, ORF2, 'CP47')
+
+#PsbY <- dplyr::filter (ORF2, grepl('PsbO', name))
+#fixdata(PsbY, 'PsbO', "PsbY", "PsbYmean")
+```
+
+
+
+
+#Photosystem II Reaction Center     
+
+D1 (gene: PsbA), QB     
+
+D2 (gene: PsbD), QA    
+
+Cytochrome c550 (gene: PsbV)    
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 D1 <- dplyr::filter (ORF2, grepl('center.D1|protein.D1|em.II.D1|PsbA', name))
-xyplotsmalldata(D1,"D1")
+#xyplotsmalldata(D1,"D1")
 xyplotconcise(D1, "D1")
 
 D2 <- dplyr::filter (ORF2, grepl('center.D2|protein.D2|em.II.D2', name))
 xyplotsmalldata(D2,"D2")
-xyplotconcise(D2, "D2")
+#xyplotconcise(D2, "D2")
 
 Psb <- dplyr::filter (ORF2, grepl('PsbQ|PsbO|PsbP', name))
 xyplotsmalldata(Psb,"PSII oxygen-evolving complex (Psb O,P,Q)")
-xyplotconcise(Psb, "PSII oxygen-evolving complex (Psb O,P,Q)")
+#xyplotconcise(Psb, "PSII oxygen-evolving complex (Psb O,P,Q)")
 
 PsbO <- dplyr::filter (ORF2, grepl('PsbO', name))
 xyplotsmalldata(PsbO,"Manganese Stabilizing Protein (PsbO)")
 
 PsbP <- dplyr::filter (ORF2, grepl('PsbP', name))
 xyplotsmalldata(PsbP,"PsbP")
-xyplotconcise(PsbP, "PsbP")
+#xyplotconcise(PsbP, "PsbP")
 
 PsbQ <- dplyr::filter (ORF2, grepl('PsbQ', name))
 xyplotsmalldata(PsbQ,"PsbQ")
 
 Cyt_c550 <- dplyr::filter (ORF2, grepl('c.550|psbV', name))
 xyplotsmalldata(Cyt_c550,"Cyt_c550")
-xyplotconcise(Cyt_c550, "Cyt_c550")
+#xyplotconcise(Cyt_c550, "Cyt_c550")
 
 #cytb559 is a heterodiamer (PsbE and PsbF ) with a heme cofactor 
 #unclear function, likely involved in photoprotection
 Cyt_b559 <- dplyr::filter (ORF2, grepl('psbE|psbF|PF00284', name))
 xyplotconcise(Cyt_b559, "Cyt_b559")
-heatmap_unclustered(group, Cyt_b559, 'b559|psbF')
-xyplotsmalldata(Cyt_b559, "cytoc_b559")
+#heatmap_unclustered(group, Cyt_b559, 'b559|psbF')
+#xyplotsmalldata(Cyt_b559, "cytoc_b559")
 ```
 
 
-Plastoquinone
-```{r eval=FALSE, include=FALSE}
+#Plastoquinone
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 PQ <- dplyr::filter (ORF2, grepl('plastoquinone', name))
 xyplotconcise(PQ, "Plastoquinone")
 
@@ -475,14 +508,17 @@ xyplotconcise(PQ, "Plastoquinone")
 ```
 
 
-Cytochrome
-```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+
+#B6F
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 Rieske <- dplyr::filter (ORF2, grepl('Rieske|rieske', name))
 xyplotconcise(Rieske,"Rieske iron-sulfur protein")
-xyplotsmalldata(Rieske, "Rieske")
+#xyplotsmalldata(Rieske, "Rieske")
 
-CytC <- dplyr::filter (ORF2, grepl('fumarate', name))
-xyplotconcise(CytC,"CytC")
+#CytC <- dplyr::filter (ORF2, grepl('fumarate', name))
+#xyplotconcise(CytC,"CytC")
+B6F <- dplyr::filter (ORF2, grepl('b6f|B6F', name))
+xyplotsmalldata(B6F,"Cyt b6f")
 
 #Cytochrome <- dplyr::filter (ORF2, grepl('cytochrome|Cytochrome|cytoc|Cytoc', name))
 #xyplotconcise(Cytochrome, "Cytochrome")
@@ -491,18 +527,21 @@ xyplotconcise(CytC,"CytC")
 #xyplotsmalldata(CPF,"CP43")
 #xyplotconcise(CPF, "CP43")
 
-heatmap_unclustered(chloro, ORF2, 'b6f')
+#heatmap_unclustered(chloro, ORF2, 'b6f')
 ```
-
-Plastocyanin - Only a small decrease when iron is added. Interesting! Will investigate further. 
-```{r}
+    
+    
+ 
+#Plastocyanin 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 Plasto <- dplyr::filter (ORF2, grepl('plastocyanin|PCY|Plastocyanin', name))
 xyplotconcise(Plasto, "Plastocyanin")
 ```
+ 
 
-
-Photosystem_I
 ```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+#Photosystem 1
+
 P700 <- dplyr::filter (ORF2, grepl('P700', name))
 xyplotconcise(P700, "P700")
 

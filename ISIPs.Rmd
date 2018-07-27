@@ -1,0 +1,54 @@
+---
+title: "ISIPs"
+author: "Loay Jabre"
+date: "July 23, 2018"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+```{r message=FALSE, warning=FALSE, include=FALSE, results='hide'}
+
+library(shiny)
+library(ggplot2)
+library(dplyr)
+library(plyr)
+library(gplots)
+library(heatmap.plus)
+library(RColorBrewer)
+library(reshape2)
+library(scales)
+library(calibrate)
+library(tidyr)
+library(plotly)
+library(scatterplot3d)
+library(rgl)
+library(gsubfn)
+library(ggrepel)
+library(gridExtra)
+library(htmlwidgets)
+
+
+source("fragtranscript_functions.R")
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+ORF <- read.csv("ORF.csv", header = TRUE, sep = ",")
+
+ORF$name <- paste(ORF$orf_id, ORF$cluster, ORF$kegg_desc, ORF$KO_desc, ORF$KO_pathway, ORF$KOG_desc, ORF$KOG_class, ORF$best_hit_annotation, ORF$PFams_desc, ORF$TIGRFams_desc)
+
+ISIP <- dplyr::filter (ORF, grepl('ISIP|isip', name))
+```
+ 
+#ISIP Volcano 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+volcanoplotinteractive("X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")    
+volcanoplotinteractive("X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")     
+volcanoplotinteractive("X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
+volcanoplotinteractive("X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
+volcanoplotinteractive("X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
+volcanoplotinteractive("X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
+volcanoplotinteractive("X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
+volcanoplotinteractive("X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
+```
+
