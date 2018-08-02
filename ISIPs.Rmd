@@ -55,45 +55,66 @@ volcanoplotinteractive("X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS
 
 ```{r}
 
-#theme_bw()+
-theme(plot.title = element_text(hjust = 0.5))+
-theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
-theme(legend.position = "none")+
-#scale_y_log10()
-geom_jitter(width = 0.2)
-#geom_line(aes(group=name))
-ggplotly(p)
-ISIPdelta  <- dplyr::filter (ISIPheatmap, grepl('_574_|1740_|2064_', name))
+
+ISIP1 <- ISIP [-c(1:46,50:64, 83:106)]
+
+ISIP1 <- ISIP1 [c(22, 1:21)]
+names(ISIP1)<- c("name", "A_T0", "B_T0", "C_T0", "A_0.5", "B_0.5", "C_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_3", "B_3", "C_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_6", "B_6", "C_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+
+
+ISIP1  <- dplyr::filter (ISIP1, grepl('_574_|1740_|2064_', name))
+
+#this loops takes the means of the triplicate treatments
 colname <- "mean"
 i=0
 while (i < 7){
 colname <- paste(colname, i)
 col1 = 2+(i*3)
 col2 = 4+(i*3)
-ISIPdelta[[colname]] <- rowMeans( ISIPdelta[, c(col1:col2)] )
+ISIP1[[colname]] <- rowMeans( ISIP1[, c(col1:col2)] )
 i <- i+1
 }
-ISIPdelta<- ISIPdelta [-c(2:23)]
-names(ISIPdelta) <- c("name","NoFe_0.5C", "Fe_0.5C", "NoFe_3C", "Fe_3C", "NoFe_6C", "Fe_6C" )
-ISIPdelta <-  melt (data = ISIPdelta,id.vars = "name", measure.vars = c(2:7))
-ISIPdelta <- separate(ISIPdelta, col = variable, into = c("Fe", "temperature"))
-ggplot(ISIPdelta, aes(x=temperature, y=value, colour = name, shape = Fe ))+
+
+
+ISIP1<- ISIP1 [-c(2:23)]
+
+names(ISIP1) <- c("name","NoFe_0.5", "Fe_0.5", "NoFe_3", "Fe_3", "NoFe_6", "Fe_6" )
+
+ISIP1 <-  melt (data = ISIP1,id.vars = "name", measure.vars = c(2:7))
+ISIP1 <- separate(ISIP1, col = variable, into = c("Fe", "temperature"))
+
+ggplot(ISIP1, aes(x=temperature, y=value, colour = name, shape = Fe ))+
 #geom_point(size = 2)+
 #stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.25)+
 #stat_summary(fun.data =  mean_se, geom = "errorbar", colour = "black")+
-xlab ("Temperature")+
-ylab ("Log10 Expression-Value")+
-ggtitle("ISIP1")+
+xlab ("Temperature (°C)")+
+ylab ("Expression-Value")+
+ggtitle("ISIP2A")+
 theme_bw()+
 theme(plot.title = element_text(hjust = 0.5))+
 theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
 guides(colour=FALSE)+
 #scale_color_manual(name = "Treatment", labels = c("+Fe", "-Fe"), values = c("triangle", "square")) +
-geom_jitter(width = 0.2, size =2)+
-labs (shape = "Treatment")+
-scale_y_log10()
+geom_jitter(width = 0.11, size =2)+
+labs (shape = "Treatment")
+#scale_y_log10()
 #geom_line(aes(group=name))
-ISIPdelta  <- dplyr::filter (ISIPheatmap, grepl('_574_|1740_|2064_', name))
+
+
+```
+
+
+
+
+
+
+
+
+```{r}
+
+
+
+
 colname <- "mean"
 i=0
 while (i < 7){
@@ -107,6 +128,7 @@ ISIPdelta<- ISIPdelta [-c(2:23)]
 names(ISIPdelta) <- c("name","NoFe_0.5C", "Fe_0.5C", "NoFe_3C", "Fe_3C", "NoFe_6C", "Fe_6C" )
 ISIPdelta <-  melt (data = ISIPdelta,id.vars = "name", measure.vars = c(2:7))
 ISIPdelta <- separate(ISIPdelta, col = variable, into = c("Fe", "temperature"))
+
 ggplot(ISIPdelta, aes(x=temperature, y=value, colour = name, shape = Fe ))+
 #geom_point(size = 2)+
 #stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.25)+
@@ -123,6 +145,7 @@ geom_jitter(width = 0.1, size =2)+
 labs (shape = "Treatment")+
 scale_y_log10()
 #geom_line(aes(group=name))
+
 ISIPdelta  <- dplyr::filter (ISIPheatmap, grepl('_1892_|900_|1307', name))
 View(ISIPdelta)
 ISIPdelta  <- dplyr::filter (ISIPheatmap, grepl('_1892_|900_|1307', name))
@@ -139,6 +162,7 @@ ISIPdelta<- ISIPdelta [-c(2:23)]
 names(ISIPdelta) <- c("name","NoFe_0.5C", "Fe_0.5C", "NoFe_3C", "Fe_3C", "NoFe_6C", "Fe_6C" )
 ISIPdelta <-  melt (data = ISIPdelta,id.vars = "name", measure.vars = c(2:7))
 ISIPdelta <- separate(ISIPdelta, col = variable, into = c("Fe", "temperature"))
+
 ggplot(ISIPdelta, aes(x=temperature, y=value, colour = name, shape = Fe ))+
 #geom_point(size = 2)+
 #stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.25)+
@@ -155,6 +179,7 @@ geom_jitter(width = 0.1, size =2)+
 labs (shape = "Treatment")+
 scale_y_log10()
 #geom_line(aes(group=name))
+
 ISIPdelta  <- dplyr::filter (ISIPheatmap, grepl('_1892_|900_|1307', name))
 colname <- "mean"
 i=0
@@ -169,6 +194,7 @@ ISIPdelta<- ISIPdelta [-c(2:23)]
 names(ISIPdelta) <- c("name","NoFe_0.5C", "Fe_0.5C", "NoFe_3C", "Fe_3C", "NoFe_6C", "Fe_6C" )
 ISIPdelta <-  melt (data = ISIPdelta,id.vars = "name", measure.vars = c(2:7))
 ISIPdelta <- separate(ISIPdelta, col = variable, into = c("Fe", "temperature"))
+
 ggplot(ISIPdelta, aes(x=temperature, y=value, colour = name, shape = Fe ))+
 #geom_point(size = 2)+
 #stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.25)+
@@ -185,6 +211,7 @@ geom_jitter(width = 0.1, size =2)+
 labs (shape = "Treatment")+
 scale_y_log10()+
 geom_line(aes(group=name))
+
 ISIPdelta  <- dplyr::filter (ISIPheatmap, grepl('_1892_|900_|1307', name))
 colname <- "mean"
 i=0
@@ -195,11 +222,7 @@ col2 = 4+(i*3)
 ISIPdelta[[colname]] <- rowMeans( ISIPdelta[, c(col1:col2)] )
 i <- i+1
 }
-ISIPdelta<- ISIPdelta [-c(2:23)]
-names(ISIPdelta) <- c("name","NoFe_0.5C", "Fe_0.5C", "NoFe_3C", "Fe_3C", "NoFe_6C", "Fe_6C" )
-ISIPdelta <-  melt (data = ISIPdelta,id.vars = "name", measure.vars = c(2:7))
-ISIPdelta <- separate(ISIPdelta, col = variable, into = c("Fe", "temperature"))
-ggplot(ISIPdelta, aes(x=temperature, y=value, colour = name, shape = Fe ))+
++
 #geom_point(size = 2)+
 #stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.25)+
 #stat_summary(fun.data =  mean_se, geom = "errorbar", colour = "black")+
@@ -488,6 +511,8 @@ geom_jitter(width = 0.11, size =2)+
 labs (shape = "Treatment")
 #scale_y_log10()
 #geom_line(aes(group=name))
+
+
 ISIPdelta  <- dplyr::filter (ISIPheatmap, grepl('_1892_|900_|_747_', name))
 colname <- "mean"
 i=0
@@ -502,71 +527,20 @@ ISIPdelta<- ISIPdelta [-c(2:23)]
 names(ISIPdelta) <- c("name","NoFe_0.5C", "Fe_0.5C", "NoFe_3C", "Fe_3C", "NoFe_6C", "Fe_6C" )
 ISIPdelta <-  melt (data = ISIPdelta,id.vars = "name", measure.vars = c(2:7))
 ISIPdelta <- separate(ISIPdelta, col = variable, into = c("Fe", "temperature"))
-ggplot(ISIPdelta, aes(x=temperature, y=value, colour = name, shape = Fe ))+
-#geom_point(size = 2)+
-#stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.25)+
-#stat_summary(fun.data =  mean_se, geom = "errorbar", colour = "black")+
-xlab ("Temperature")+
-ylab ("Expression-Value")+
-ggtitle("ISIP2A")+
-theme_bw()+
-theme(plot.title = element_text(hjust = 0.5))+
-theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
-guides(colour=FALSE)+
-#scale_color_manual(name = "Treatment", labels = c("+Fe", "-Fe"), values = c("triangle", "square")) +
-geom_jitter(width = 0.11, size =2)+
-labs (shape = "Treatment")
-#scale_y_log10()
-#geom_line(aes(group=name))
-ISIPdelta  <- dplyr::filter (ISIPheatmap, grepl('_1892_|900_|1307_|_747_', name))
-colname <- "mean"
-i=0
-while (i < 7){
-colname <- paste(colname, i)
-col1 = 2+(i*3)
-col2 = 4+(i*3)
-ISIPdelta[[colname]] <- rowMeans( ISIPdelta[, c(col1:col2)] )
-i <- i+1
-}
-ISIPdelta<- ISIPdelta [-c(2:23)]
-names(ISIPdelta) <- c("name","NoFe_0.5C", "Fe_0.5C", "NoFe_3C", "Fe_3C", "NoFe_6C", "Fe_6C" )
-ISIPdelta <-  melt (data = ISIPdelta,id.vars = "name", measure.vars = c(2:7))
-ISIPdelta <- separate(ISIPdelta, col = variable, into = c("Fe", "temperature"))
-ggplot(ISIPdelta, aes(x=temperature, y=value, colour = name, shape = Fe ))+
-#geom_point(size = 2)+
-#stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.25)+
-#stat_summary(fun.data =  mean_se, geom = "errorbar", colour = "black")+
-xlab ("Temperature")+
-ylab ("Expression-Value")+
-ggtitle("ISIP2A")+
-theme_bw()+
-theme(plot.title = element_text(hjust = 0.5))+
-theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
-guides(colour=FALSE)+
-#scale_color_manual(name = "Treatment", labels = c("+Fe", "-Fe"), values = c("triangle", "square")) +
-geom_jitter(width = 0.11, size =2)+
-labs (shape = "Treatment")
-#scale_y_log10()
-#geom_line(aes(group=name))
+
+
+
+
 View(ISIPdelta)
 ISIPdelta  <- dplyr::filter (ISIPheatmap, grepl('_1892_|900_|1307_|_747_', name))
 View(ISIPdelta)
-ORF <- read.csv("ORF.csv", header = TRUE, sep = ",")
-ORF$name <- paste(ORF$orf_id, ORF$cluster, ORF$kegg_desc, ORF$KO_desc, ORF$KO_pathway, ORF$KOG_desc, ORF$KOG_class, ORF$best_hit_annotation, ORF$PFams_desc, ORF$TIGRFams_desc)
-ISIP <- dplyr::filter (ORF, grepl('LHC|lhc|Lhc', name))
+
+
+
+
+
 View(ISIP)
-ISIPheatmap <- ISIP [-c(1:46,50:64, 83:106)]
-ISIPheatmap <- ISIPheatmap [c(22, 1:21)]
-names(ISIPheatmap)<- c("name", "A_T0", "B_T0", "C_T0", "A_0.5", "B_0.5", "C_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_3", "B_3", "C_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_6", "B_6", "C_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
-View(ISIPheatmap)
-volcanoplotinteractive("X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")
-volcanoplotinteractive("X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")
-volcanoplotinteractive("X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
-volcanoplotinteractive("X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
-volcanoplotinteractive("X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
-volcanoplotinteractive("X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
-volcanoplotinteractive("X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
-volcanoplotinteractive("X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
+
 
 
 
