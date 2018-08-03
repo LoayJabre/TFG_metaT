@@ -74,8 +74,8 @@ volcanoplot <- function(foldchange, FDR, graphtitle){
 ###``````````````````````````````````````````````````###
 #this is an interactive volcano plot function 
 
-volcanoplotinteractive <- function(Fold, FDR, volcanontitle){
-volcano <- ISIP[c("name", Fold, FDR)]
+volcanoplotinteractive <- function(Dataset, Fold, FDR, volcanontitle){
+volcano <- Dataset[c("name", Fold, FDR)]
 names(volcano) <- c("gene", "Fold", "FDR")
 
 volcano ["group"] <- "nofoldchange_notsignificant"
