@@ -29,83 +29,39 @@ library(htmlwidgets)
 
 source("fragtranscript_functions.R")
 
-#Functions
-## The function below allows me to select and plot one specific ISIP (name from the MCL data) and plot it. Then after that, I can put those plots on one page.
-MCLclusterplot <- function(whichISIP, graphtitle){
-ISIPMCL <- dplyr::filter(MCL, grepl (whichISIP, name))
-ISIPMCL <- ISIPMCL [c(76, 1:75)]
-ISIPMCL <- ISIPMCL [-c(2:28, 47:76)]
-names(ISIPMCL)<- c("name", "A_0.5", "B_0.5", "C_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_3", "B_3", "C_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_6", "B_6", "C_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+#Used functions: 
+#MCLclusterplot <- function(whichdata, whichprotein, graphtitle): This plots the mean of the three triplicates in a line, against the three temperatures with -/+ Fe in two different colors. 
 
-colname <- "mean"
-i=0
-while (i < 6){
-colname <- paste(colname, i)
-col1 = 2+(i*3)
-col2 = 4+(i*3)
-ISIPMCL[[colname]] <- rowMeans( ISIPMCL[, c(col1:col2)] )
-i <- i+1
-}
-
-colname <- "SD"
-i=0
-while (i < 6){
-colname <- paste(colname, i)
-col1 = 2+(i*3)
-col2 = 4+(i*3)
-ISIPMCL[[colname]] <- apply ( ISIPMCL[, c(col1:col2)],1, sd )
-i <- i+1
-}
-
-ISIPMCL <- ISIPMCL [-c(2:19)]
-names(ISIPMCL) <- c("name","mean_NoFe_0.5", "mean_Fe_0.5", "mean_NoFe_3", "mean_Fe_3", "mean_NoFe_6", "mean_Fe_6","SD_NoFe_0.5", "SD_Fe_0.5", "SD_NoFe_3", "SD_Fe_3", "SD_NoFe_6", "SD_Fe_6")
-
-ISIPMCL <-  melt (data = ISIPMCL,id.vars = "name")
-ISIPMCL <- separate(ISIPMCL, col = variable, into = c("Statistic", "Fe", "temperature"))
-ISIPMCL <- spread(ISIPMCL, Statistic, value)
-
-ggplot(ISIPMCL, aes(x=temperature, y=mean, colour = Fe ))+
-  geom_errorbar(aes(ymin = mean-SD, ymax = mean+SD), width = 0.5,   color = "black", size = 0.7)+
-geom_point(size = 3)+
- geom_line(size = 1, aes (x=temperature, y=mean, group = interaction(Fe, name)))+
-  scale_color_manual(values = c("red", "black"))+
-xlab ("Temperature (°C)")+
-  ylab ("Expression-Value")+
-ggtitle(graphtitle)+
-theme_bw()+
-#labs (color = "Treatment") +
-theme(plot.title = element_text(hjust = 0.5))+
-theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))
-#guides(colour = "Treatment")
-}
-
+#MCLclusterrawplot <- function(whichdata, whichprotein, graphtitle): This plots the three points of the three triplicates (not the mean), against the three temperatures with -/+ Fe in two different colors. 
 ```
 
-Import Datasets
+Import Datasets and make a name column in both 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 ORF <- read.csv("ORF.csv", header = TRUE, sep = ",")
 ORF$name <- paste(ORF$orf_id, ORF$cluster, ORF$kegg_desc, ORF$KO_desc, ORF$KO_pathway, ORF$KOG_desc, ORF$KOG_class, ORF$best_hit_annotation, ORF$PFams_desc, ORF$TIGRFams_desc)
 
 MCL <- read.csv("MCL.csv", header = TRUE, sep = "," )
 MCL$name <- paste (MCL$cluster, MCL$ann_desc)
+
+
+allMCL <- read.csv("allMCL.csv", header = TRUE, sep = "," )
+allMCL$name <- paste (allMCL$cluster, allMCL$ann_desc)
+
+FragMCL <- dplyr::filter (allMCL, grepl('Fragilariopsis', Taxa.group))
+PNitMCL <- dplyr::filter (allMCL, grepl('Pseudo-nit', Taxa.group))
+
+all <- read.csv("all.csv", header = TRUE, sep = "," )
+all$name <- paste(all$orf_id, all$cluster, all$kegg_desc, all$KO_desc, all$KO_pathway, all$KOG_desc, all$KOG_class, all$best_hit_annotation, all$PFams_desc, all$TIGRFams_desc)
+Pseudo <- dplyr::filter (all, grepl('Pseudo-nitzschi', grpnorm_taxgrp))
+Pseudo <- dplyr::filter (Pseudo, grepl('Eukar', domain))
 ```
 
-#MCL volcano
-```{r}
-#volcanoplotinteractive <- function(Dataset, Fold, FDR, volcanontitle)
-volcanoplotinteractive(MCL, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C") 
-volcanoplotinteractive(MCL, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C") 
-volcanoplotinteractive(MCL, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
-volcanoplotinteractive(MCL, "X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
-volcanoplotinteractive(MCL, "X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
-volcanoplotinteractive(MCL, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
-volcanoplotinteractive(MCL, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
-volcanoplotinteractive(MCL, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
-```
- 
-# ORF volcano for ISIP ISIP  
+
+# ORF volcano plot for Frag ISIPs   
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ISIP <- dplyr::filter (ORF, grepl('ISIP|isip', name))
+
+#nitratereductase <- dplyr::filter (ORF, grepl('contig_580799_1_929_-|contig_1148680_114_1091_+|contig_1148680_1151_2203_+|contig_1155130_1_1036_+|contig_667814_1_947_-', orf_id))
 
 #volcanoplotinteractive <- function(Dataset, Fold, FDR, volcanontitle)
 volcanoplotinteractive(ISIP, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")    
@@ -118,19 +74,115 @@ volcanoplotinteractive(ISIP, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test:
 volcanoplotinteractive(ISIP, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
 ```
 
-#MCL cluster ISIP plots 
+
+#MCL volcano including all of the clusters (annotated or not) 
 ```{r}
-I1 <- MCLclusterplot('clust_1814 ', "ISIP1 - cluster 1814")
-I2 <- MCLclusterplot('clust_9740 ', "ISIP2A - cluster 9740")
-I3 <- MCLclusterplot('clust_1154 ', "ISIP3 - cluster 1154")
-I4 <- MCLclusterplot('clust_25598 ', "ISIP2A - cluster 25598 (not significant)")
-grid.arrange(I1, I2, I3, I4, nrow=2, ncol=2)
+#volcanoplotinteractive <- function(Dataset, Fold, FDR, volcanontitle)
+FragMCL <- dplyr::filter (PNitMCL, grepl('clust_1814|clust_1154|clust_9740', name))
+
+
+
+volcanoplotinteractive(FragMCL, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")
+volcanoplotinteractive(FragMCL, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")
+volcanoplotinteractive(FragMCL, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
+volcanoplotinteractive(FragMCL, "X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
+volcanoplotinteractive(FragMCL, "X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
+volcanoplotinteractive(FragMCL, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
+volcanoplotinteractive(FragMCL, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
+volcanoplotinteractive(FragMCL, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
 ```
+ 
+
+# ISIP plots for frag 
+```{r}
+#I1 <-
+I1f<- MCLclusterrawplot (FragMCL, '^clust_1814$', "ISIP1 - cluster 1814Frag")
+I1p<- MCLclusterrawplot (PNitMCL, '^clust_1814$', "ISIP1 - cluster 1814Pseudo")
+I2f <- MCLclusterrawplot (FragMCL,'clust_9740', "ISIP2A - cluster 9740Frag")
+I2p <- MCLclusterrawplot (PNitMCL,'clust_9740', "ISIP2A - cluster 9740Pseudo")
+I3f <- MCLclusterrawplot (FragMCL,'clust_1154', "ISIP3 - cluster 1154Frag")
+I3p <- MCLclusterrawplot (PNitMCL,'clust_1154', "ISIP3 - cluster 1154Pseudo")
+#I4 <- MCLclusterrawplot (MCL,'clust_25598', "ISIP2A - cluster 25598 (not significant)")
+grid.arrange(I1f,I1p,I2f,I2p, I3f, I3p, nrow=3, ncol=2)
+```
+
+# MCL cluster Nitrogen plots for for Frag
+```{r}
+NiR <- MCLclusterrawplot(MCL, '^clust_411$', "Nitrate reductase - cluster 411")
+NitTrans <- MCLclusterrawplot(MCL, '^clust_991$', "Nitrate transporter portein - cluster 991")
+NR <- MCLclusterrawplot(MCL, '^clust_3563$', "Nitrite reductase - cluster 3563")
+Urease <- MCLclusterrawplot(MCL, '^clust_927$', "Urease - cluster 927")
+URED <- MCLclusterrawplot(MCL, '^clust_20535$', "Urease Accessory Protein UreD - cluster 20535")
+grid.arrange(NiR, NitTrans, NR, Urease, URED,  nrow=3, ncol=2)
+
+GS<- MCLclusterrawplot(MCL, '^clust_589$', "Glutamine Synthetase - cluster 589")
+GaS <- MCLclusterrawplot(MCL, '^clust_241$', "Glutamate Synthase - cluster 241")
+grid.arrange(GS, GaS, nrow=1, ncol=2)
+
+MCLclusterrawplot(MCL, '^clust_999$', "Nitrite reductase - cluster 3563")
+
+LHC <- dplyr::filter (ORF, grepl('transaminase', name))
+
+```
+
+
+
+Pseudo
+```{r}
+
+Pseudo <- Pseudo [-c(2:4, 6,7, 10:12, 15:21, 23:26, 28, 30:34, 35:46,50:58, 83:106)]
+
+
+
+Pseudo <- Pseudo [-c(1:9)]
+
+Pseudo <- Pseudo [c(28, 1:27)]
+
+ORF2$name <- sub('[.]', '_', make.names(ORF2$name, unique = TRUE))
+
+names(Pseudo)<- c("name", "A_T0", "B_T0", "C_T0", "A_B12_0.5", "B_B12_0.5", "C_B12_0.5", "A_B12Fe_0.5", "B_B12Fe_0.5", "C_B12Fe_0.5", "A_0.5", "B_0.5", "C_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_3", "B_3", "C_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_6", "B_6", "C_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+
+
+
+PISIP <- dplyr::filter (Pseudo, grepl('ISIP|isip', name))
+PISIP <- PISIP [-c(5:10)]
+heatmap(data, PISIP, "ISIP1")
+xyplotconcise(PISIP,"All of ISIPs")
+
+
+
+NiR <- MCLclusterrawplot(Pseudo, '^clust_411$', "Nitrate reductase - cluster 411")
+NitTrans <- MCLclusterrawplot(Pseudo,'^clust_991$', "Nitrate transporter portein - cluster 991")
+NR <- MCLclusterrawplot(Pseudo,'^clust_3563$', "Nitrite reductase - cluster 3563")
+Urease <- MCLclusterrawplot(Pseudo,'^clust_927$', "Urease - cluster 927")
+URED <- MCLclusterrawplot(Pseudo,'^clust_20535$', "Urease Accessory Protein UreD - cluster 20535")
+grid.arrange(NiR, NitTrans, NR, Urease, URED,  nrow=3, ncol=2)
+
+GS<- MCLclusterrawplot(Pseudo,'^clust_589$', "Glutamine Synthetase - cluster 589")
+GaS <- MCLclusterrawplot(Pseudo,'^clust_241$', "Glutamate Synthase - cluster 241")
+grid.arrange(GS, GaS, nrow=1, ncol=2)
+
+MCLclusterrawplot(Pseduo,'^clust_1816$', "Nitrite reductase - cluster 3563")
+LHC <- dplyr::filter (ORF, grepl('clust_1816', name))
+
+```
+
+
+
+
+
+
+
+
+
 
 
 # ORF volcano for LHC
 ```{r}
-LHC <- dplyr::filter (ORF, grepl('LHC|lhc|Lhc', name))
+#LHC <- dplyr::filter (ORF, grepl('LHC|lhc|Lhc', name))
+
+LHC <- dplyr::filter (ORF, grepl('ISIP', name))
+
 volcanoplotinteractive(LHC, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")    
 volcanoplotinteractive(LHC, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")     
 volcanoplotinteractive(LHC, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
@@ -141,15 +193,16 @@ volcanoplotinteractive(LHC, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 
 volcanoplotinteractive(LHC, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
 ```
 
+
 #Light Harvesting Complexes
 ```{r}
-F1 <- MCLclusterplot('clust_1236 ', "LHCf1 - cluster 1236")
-F2 <- MCLclusterplot('clust_1194 ', "LHCf4 - cluster 1194")
+F1 <- MCLclusterrawplot('^clust_1236$', "LHCf1 - cluster 1236")
+F2 <- MCLclusterrawplot('^clust_1194$', "LHCf4 - cluster 1194")
 grid.arrange(F1, F2, nrow=2, ncol=1)
 
-X1 <- MCLclusterplot('clust_712 ', "LHCx1 - cluster 712")
-X2 <- MCLclusterplot('clust_960 ', "LHCx5 - cluster 960")
-X3 <- MCLclusterplot('clust_1787 ', "LHCx6 - cluster 1787")
+X1 <- MCLclusterrawplot('^clust_712$', "LHCx1 - cluster 712")
+X2 <- MCLclusterrawplot('^clust_960$', "LHCx5 - cluster 960")
+X3 <- MCLclusterrawplot('^clust_1787$', "LHCx6 - cluster 1787")
 grid.arrange(X1, X2, X3, nrow=2, ncol=2)
 
 MCLclusterplot('clust_1550 ', "PSII Cytb559 - cluster 1550")
@@ -157,13 +210,15 @@ MCLclusterplot('clust_1550 ', "PSII Cytb559 - cluster 1550")
 MCLclusterplot('clust_38070 ', "Chl A/B binding - 38070")
 MCLclusterplot('clust_646 ', "Chl A/B binding - 646")
 MCLclusterplot('clust_195 ', "Chl A/B binding - 195")
+MCLclusterplot('clust_534 ', "Flavodoxin - 534")
+
 ```
 
 
 
 # ORF volcano for core antenna
 ```{r}
-LHC <- dplyr::filter (ORF, grepl('A-B', name))
+LHC <- dplyr::filter (ORF, grepl('nitrite', name))
 #LHC <- dplyr::filter (MCL, grepl('Photosystem|photosystem', name))
 
 
@@ -180,25 +235,7 @@ volcanoplotinteractive(LHC, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#All of ISIP2A in the ORF
 ```{r}
 ISIP <- dplyr::filter (ORF, grepl('clust_7576', name))
 ISIP1 <- ISIP [-c(1:46,50:64, 83:106)]
@@ -241,32 +278,3 @@ labs (shape = "Treatment")
 #scale_y_log10()
 #geom_line(aes(group=name))
 ```
-
-
-This plots the raw triplicates 
-```{r}
-ISIPMCL <- dplyr::filter(MCL, grepl ('^clust_1814$', cluster))
-
-ISIPMCL <- ISIPMCL [c(76, 1:75)]
-ISIPMCL <- ISIPMCL [-c(2:28, 47:76)]
-names(ISIPMCL)<- c("name", "A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
-
-ISIPMCL <-  melt (data = ISIPMCL,id.vars = "name")
-ISIPMCL <- separate(ISIPMCL, col = variable, into = c("Rep", "Fe", "temperature"))
-
- ggplot(ISIPMCL, aes(x=temperature, y=value, colour = Fe, shape = Rep ))+
-geom_point(size = 3)+
-  scale_color_manual(values = c("red", "black"))+
-xlab ("Temperature (°C)")+
-ylab ("Expression-Value")+
-#ggtitle("ISIP1")+
-theme_bw()+
-theme(plot.title = element_text(hjust = 0.5))+
-theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
-  scale_color_manual (name = "", labels = c("+Fe", "-Fe"), values = c("red", "black"))
-```
-
-
-
-
-

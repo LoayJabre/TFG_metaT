@@ -1,3 +1,81 @@
+#MCLclusterplot <- function(whichdata, whichprotein, graphtitle): This plots the mean of the three triplicates in a line, against the three temperatures with -/+ Fe in two different colors. 
+
+#MCLclusterrawplot <- function(whichdata, whichprotein, graphtitle): This plots the three points of the three triplicates (not the mean), against the three temperatures with -/+ Fe in two different colors. 
+
+MCLclusterplot <- function(whichdata, whichprotein, graphtitle){
+  ISIPMCL <- dplyr::filter(whichdata, grepl (whichprotein, name))
+  ISIPMCL <- ISIPMCL [c(76, 1:75)]
+  ISIPMCL <- ISIPMCL [-c(2:28, 47:76)]
+  names(ISIPMCL)<- c("name", "A_0.5", "B_0.5", "C_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_3", "B_3", "C_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_6", "B_6", "C_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+  
+  colname <- "mean"
+  i=0
+  while (i < 6){
+    colname <- paste(colname, i)
+    col1 = 2+(i*3)
+    col2 = 4+(i*3)
+    ISIPMCL[[colname]] <- rowMeans( ISIPMCL[, c(col1:col2)] )
+    i <- i+1
+  }
+  
+  colname <- "SD"
+  i=0
+  while (i < 6){
+    colname <- paste(colname, i)
+    col1 = 2+(i*3)
+    col2 = 4+(i*3)
+    ISIPMCL[[colname]] <- apply ( ISIPMCL[, c(col1:col2)],1, sd )
+    i <- i+1
+  }
+  
+  ISIPMCL <- ISIPMCL [-c(2:19)]
+  names(ISIPMCL) <- c("name","mean_NoFe_0.5", "mean_Fe_0.5", "mean_NoFe_3", "mean_Fe_3", "mean_NoFe_6", "mean_Fe_6","SD_NoFe_0.5", "SD_Fe_0.5", "SD_NoFe_3", "SD_Fe_3", "SD_NoFe_6", "SD_Fe_6")
+  
+  ISIPMCL <-  melt (data = ISIPMCL,id.vars = "name")
+  ISIPMCL <- separate(ISIPMCL, col = variable, into = c("Statistic", "Fe", "temperature"))
+  ISIPMCL <- spread(ISIPMCL, Statistic, value)
+  
+  ggplot(ISIPMCL, aes(x=temperature, y=mean, colour = Fe ))+
+    geom_errorbar(aes(ymin = mean-SD, ymax = mean+SD), width = 0.5,   color = "black", size = 0.7)+
+    geom_point(size = 3)+
+    geom_line(size = 1, aes (x=temperature, y=mean, group = interaction(Fe, name)))+
+    scale_color_manual(values = c("red", "black"))+
+    xlab ("Temperature (°C)")+
+    ylab ("Expression-Value")+
+    ggtitle(graphtitle)+
+    theme_bw()+
+    #labs (color = "Treatment") +
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))
+  #guides(colour = "Treatment")
+}
+
+
+
+MCLclusterrawplot <- function(whichdata, whichprotein, graphtitle){
+  NiRMCL <- dplyr::filter(whichdata, grepl (whichprotein, cluster))
+  NiRMCL <- NiRMCL [c(76, 1:75)]
+  NiRMCL <- NiRMCL [-c(2:28, 47:76)]
+  names(NiRMCL)<- c("name", "A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+  NiRMCL <-  melt (data = NiRMCL,id.vars = "name")
+  NiRMCL <- separate(NiRMCL, col = variable, into = c("Rep", "Fe", "temperature"))
+  
+  ggplot(NiRMCL, aes(x=temperature, y=value, colour = Fe, shape = Rep ))+
+    geom_point(size = 3)+
+    scale_color_manual(values = c("red", "black"))+
+    xlab ("Temperature (°C)")+
+    ylab ("Expression-Value")+
+    ggtitle(graphtitle)+
+    theme_bw()+
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
+    scale_color_manual (name = "", labels = c("+Fe", "-Fe"), values = c("red", "black"))
+}
+
+
+
+###`````````````````````````````````````````````````````````````````````````````````````````###
+
 #heatmap function: First it takes a subset from the dataset with whatever name 
 #of protein that we want. Then it re-shapes the data by making the protein name
 #a row header then it reshapes it into a matrix, then it plots it on a clustered
@@ -45,13 +123,13 @@ volcanoplot <- function(foldchange, FDR, graphtitle){
 
   ### adding color: this categorizes the data based on significance
   #significant but not large enough fold change
-  volcano [which(volcano['FDR'] < 0.05 & abs(volcano['Fold']) < 1), "group"]<- "nofoldchange_significant" 
+  volcano [which(volcano['FDR'] < 0.1 & abs(volcano['Fold']) < 2), "group"]<- "nofoldchange_significant" 
   
   # large enough fold change, not significant
-  volcano [which(volcano ['FDR'] > 0.05 & abs(volcano['Fold'])> 1), "group"] <- "fold-change_notsignificant"
+  volcano [which(volcano ['FDR'] > 0.1 & abs(volcano['Fold'])> 2), "group"] <- "fold-change_notsignificant"
   
   #Significant and fold change
-  volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 1), "group"] <- "fold-change_significant"
+  volcano [which(volcano ['FDR'] < 0.1 & abs(volcano['Fold']) > 2), "group"] <- "fold-change_significant"
   
   ggplot (data = volcano, aes(x= Fold, y=-log10(FDR), color= group)) +
     geom_point (alpha=0.7, size = 2,shape = 19)+
@@ -82,11 +160,11 @@ volcano ["group"] <- "nofoldchange_notsignificant"
 
 ### adding color: this categorizes the data based on significance
 #significant but not large enough fold change
-volcano [which(volcano['FDR'] < 0.05 & abs(volcano['Fold']) < 1), "group"]<- "nofoldchange_significant" 
+volcano [which(volcano['FDR'] < 0.1 & abs(volcano['Fold']) < 2), "group"]<- "nofoldchange_significant" 
 # large enough fold change, not significant
-volcano [which(volcano ['FDR'] > 0.05 & abs(volcano['Fold'])> 1), "group"] <- "foldchange_notsignificant"
+volcano [which(volcano ['FDR'] > 0.1 & abs(volcano['Fold'])> 2), "group"] <- "foldchange_notsignificant"
 #Significant and fold change
-volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 1), "group"] <- "foldchange_significant"
+volcano [which(volcano ['FDR'] < 0.1 & abs(volcano['Fold']) > 2), "group"] <- "foldchange_significant"
 
 x <- list (title ="Log2 Fold Change")
 y <- list (title = "-Log10 FDR")
