@@ -215,10 +215,11 @@ xyplotconcise(ISIP2,"ISIP3")
          
 #Flavodoxin
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-flavodoxin <- dplyr::filter (ORF2, grepl('flavodoxin|Flavodoxin', name))
+flavodoxin <- dplyr::filter (ORF2, grepl('flavodoxin', name))
 #heatmap(data, flavodoxin, "flavodoxin")
 #heatmap_unclustered(data, flavodoxin, "flavodoxin")
-xyplotconcise(flavodoxin,"Flavodoxin")
+p<- xyplotconcise(flavodoxin,"Flavodoxin")
+ggplotly(p)
 ``` 
 
 ```{r eval=FALSE, include=FALSE}
