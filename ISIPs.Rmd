@@ -63,6 +63,29 @@ FragORF <- dplyr::filter (FragORF, grepl('Eukar', domain))
 ```
 
 
+
+This chunk here is for exploring new things. 
+```{r}
+
+
+explore <- dplyr::filter(FragORF, grepl ('c6', name))
+
+
+
+explore <- dplyr::filter(FragORF, grepl ('flavodoxin|Flav', name))
+
+
+
+MCLclusterrawplot (FragMCL, '^clust_534$', "non-Iron responsive Flavodoxin in F. cylindrus")
+
+
+MCLclusterrawplot (FragMCL, '^clust_4660$', "Iron responsive Flavodoxin in F. cylindrus")
+
+MCLclusterrawplot (FragMCL, '^clust_611$', "fructose adolase")
+
+
+```
+
 List of significant MCL clusters Extract only Significant genes 
 ```{r}
 volcano <- FragMCL[c("name", "X12_vs_14.log2fc", "X12_vs_14.fdr")]
@@ -132,6 +155,19 @@ MCLclusterrawplot (FragMCL, '^clust_231$', "Rhodopsin - cluster 231 Frag")
 MCLclusterrawplot (PseudoMCL, '^clust_19837$', "Rhodopsin - cluster 231 Pseudo")
 
 
+NiRMCL <- dplyr::filter(FragORF, grepl ('ferritin|Ferritin', name))
+
+
+MCLclusterrawplot (PseudoMCL, '^clust_4956$', "Nitric Oxide Synthase -cluster 4956 Pseudo")
+
+MCLclusterrawplot (FragMCL, '^clust_4956$', "Nitric Oxide Synthase - cluster 4956 Frag")
+MCLclusterrawplot (FragMCL, '^clust_16690$', "Nitric Oxide Synthase Frag")
+
+MCLclusterrawplot (PseudoMCL, '^clust_15657$', "Nitric Oxide Synthase Frag")
+
+
+#Nitric oxide and iron in plants:an emerging and converging story. Interaction with ferritin ? 
+
 ```
 
 
@@ -180,11 +216,6 @@ LHC <- dplyr::filter (ORF, grepl('transaminase', name))
 ```
 
 
-
-
-
-
-
 #Light Harvesting Complexes
 ```{r}
 F1 <- MCLclusterrawplot(FragMCL,'^clust_1236$', "LHCf1 - cluster 1236Frag")
@@ -209,9 +240,34 @@ MCLclusterplot('clust_534 ', "Flavodoxin - 534")
 
 
 
-MCLclusterrawplot(FragMCL, '^clust_4660$', "LHCf4 - cluster 1194Frag")
+A1 <- MCLclusterrawplot(FragMCL, '^clust_6705$', "Flavodoxin - cluster 6705 Frag")
 
-MCLclusterrawplot(FragMCL, '^clust_534$', "LHCf4 - cluster 1194Frag")
+A2 <- MCLclusterrawplot(FragMCL, '^clust_534$', "Flavodoxin 1 - cluster 534 Frag")
+
+A3 <- MCLclusterrawplot(FragMCL, '^clust_4907$', "Flavodoxin - cluster 4907 Frag")
+A4 <- MCLclusterrawplot(FragMCL, '^clust_4660$', "Flavodoxin - cluster 4660 Frag")
+A5 <- MCLclusterrawplot(FragMCL, '^clust_33174$', "Flavodoxin-like fold - cluster 33174 Frag")
+A6 <- MCLclusterrawplot(FragMCL, '^clust_12773$', "Flavodoxin - cluster 12773 Frag")
+
+
+
+A1 <- MCLclusterrawplot(PseudoMCL, '^clust_6705$', "Flavodoxin - cluster 6705 Pseudo")
+
+A2 <- MCLclusterrawplot(PseudoMCL, '^clust_534$', "Flavodoxin 1 - cluster 534 Pseudo")
+
+A3 <- MCLclusterrawplot(PseudoMCL, '^clust_4907$', "Flavodoxin - cluster 4907 Pseudo")
+A4 <- MCLclusterrawplot(PseudoMCL, '^clust_4660$', "Flavodoxin - cluster 4660 Pseudo")
+A5 <- MCLclusterrawplot(PseudoMCL, '^clust_33174$', "Flavodoxin-like fold - cluster 33174 Pseudo")
+A6 <- MCLclusterrawplot(PseudoMCL, '^clust_12773$', "Flavodoxin - cluster 12773 Pseudo")
+
+
+
+
+
+
+grid.arrange(A1, A2, A3, A4, A5, A6, nrow=3, ncol=2)
+
+
 
 
 LHC <- dplyr::filter (FragMCL, grepl('Flavodoxin|flavodoxin', name))
@@ -308,7 +364,6 @@ volcanoplotinteractive(ISIP, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test:
 ```{r}
 #volcanoplotinteractive <- function(Dataset, Fold, FDR, volcanontitle)
 FragMCL <- dplyr::filter (PseudoMCL, grepl('clust_1814|clust_1154|clust_9740', name))
-
 
 
 volcanoplotinteractive(FragMCL, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")
