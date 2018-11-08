@@ -6,8 +6,17 @@ output: html_document
 editor_options: 
   chunk_output_type: console
 ---
+
+
+Overall Data 
+FragORFs: 64471
+FragMCL: 14428
+PseudoORFs: 28616
+PseudoMCL: 10852
+
+
+Load packages and functions. Some packages need to be loaded in this order, or they will clash. 
 ```{r message=FALSE, warning=FALSE, include=FALSE, results='hide'}
-#load up packages and functions
 
 library(shiny)
 library(ggplot2)
@@ -38,46 +47,8 @@ source("fragtranscript_functions.R")
 ```
  
  
-Ven diagram 
-```{r}
-#volcanoplot <- function(foldchange, FDR, graphtitle){
-  ##volcano <- ORF[c("orf_id", foldchange, FDR)]
-  #names(volcano) <- c("gene", "Fold", "FDR")
-  #volcano ["group"] <- "no-fold-change"
-
-  ### adding color: this categorizes the data based on significance
-  #significant but not large enough fold change
-  
-  
-volcano <- FragMCL[c("name", "X16_vs_17.log2fc" , "X16_vs_17.fdr")]
-volcano ["group"] <- "no-fold-change"
-names(volcano) <- c( "name", "Fold", "FDR", "group")
-
-volcano [which(volcano['FDR'] < 0.1 & abs(volcano['Fold']) < 2), "group"]<- "nofoldchange_significant" 
-  
-  # large enough fold change, not significant
-  volcano [which(volcano ['FDR'] > 0.1 & abs(volcano['Fold'])> 2), "group"] <- "fold-change_notsignificant"
-  
-  #Significant and fold change
-  volcano [which(volcano ['FDR'] < 0.1 & abs(volcano['Fold']) > 2), "group"] <- "fold-change_significant"
-  
-  
-volcanoplotinteractive(LHC, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")    
-volcanoplotinteractive(LHC, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")     
-volcanoplotinteractive(LHC, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
-volcanoplotinteractive(LHC, "X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
-volcanoplotinteractive(LHC, "X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
-volcanoplotinteractive(LHC, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
-volcanoplotinteractive(LHC, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
-volcanoplotinteractive(LHC, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C_Frag")
-```
-  
-  
- 
- 
+Upload ORF and MCL cluster files, and extract only Fragilariopsis and Pseudo-nitzchia data.  
 ```{r message=FALSE, warning=FALSE, include=FALSE}
-#Upload ORF and MCL cluster files, and take out only Frag and Pseudonitz. data 
-
 allMCL <- read.csv("allMCL.csv", header = TRUE, sep = "," )
 allMCL$name <- paste (allMCL$cluster, allMCL$ann_desc)
 
@@ -90,41 +61,221 @@ all$name <- paste(all$orf_id, all$cluster, all$kegg_desc, all$KO_desc, all$KO_pa
 PseudoORF <- dplyr::filter (all, grepl('Pseudo-nitzschi', grpnorm_taxgrp))
 PseudoORF <- dplyr::filter (PseudoORF, grepl('Eukar', domain))
 
-
 FragORF <- dplyr::filter (all, grepl('Fragilariopsis', grpnorm_taxgrp))
 FragORF <- dplyr::filter (FragORF, grepl('Eukar', domain))
+```
 
-#ORF <- read.csv("ORF.csv", header = TRUE, sep = ",")
-#ORF$name <- paste(ORF$orf_id, ORF$cluster, ORF$kegg_desc, ORF$KO_desc, ORF$KO_pathway, ORF$KOG_desc, ORF$KOG_class, ORF$best_hit_annotation, ORF$PFams_desc, ORF$TIGRFams_desc)
-#MCL <- read.csv("MCL.csv", header = TRUE, sep = "," )
-#MCL$name <- paste (MCL$cluster, MCL$ann_desc)
+
+Rhodopsin plots
+```{r}
+ISIP <- dplyr::filter (FragORF, grepl('rhodopsin|Rhodopsin', name))
+volcanoplotinteractive(ISIP, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")
+volcanoplotinteractive(ISIP, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")
+volcanoplotinteractive(ISIP, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
+volcanoplotinteractive(ISIP, "X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
+volcanoplotinteractive(ISIP, "X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
+volcanoplotinteractive(ISIP, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
+  volcanoplotinteractive(ISIP, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
+#interesting synergy test. 
+volcanoplotinteractive(ISIP, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
+
+heatmap_unclustered(group, PseudoORF, "clust_231 ")
+heatmap(group, PseudoORF, "rhodopsin|Rhodopsin")
+
+R1f <- MCLclusterrawplot (FragMCL, '^clust_231$', "Rhodopsin - cluster 231 Frag")
+R1p <- MCLclusterrawplot (PseudoMCL, '^clust_231$', "Rhodopsin - cluster 231 Pseudo")
+R2f <- MCLclusterrawplot (FragMCL, '^clust_1548$', "Rhodopsin - cluster 1548 Frag")
+R2p <- MCLclusterrawplot (PseudoMCL, '^clust_1548$', "Rhodopsin - cluster 1548 Pseudo")
+R3f <- MCLclusterrawplot (FragMCL, '^clust_10297$', "Rhodopsin - cluster 10297 Frag")
+R3p <- MCLclusterrawplot (PseudoMCL, '^clust_10297$', "Rhodopsin - cluster 10297 Pseudo")
+R4f <- MCLclusterrawplot (FragMCL, '^clust_19837$', "Rhodopsin - cluster 19837 Frag")
+R4p <- MCLclusterrawplot (PseudoMCL, '^clust_19837$', "Rhodopsin - cluster 19837 Pseudo")
+
+
+grid.arrange(R1f, R1p, R2f, R2p, R3f, R3p, nrow=3, ncol=2)
+
+x<- ORFplots(FragORF, "^clust_231$", 'titile')
+
+ggplotly(x)
+
+ORFplots(FragORF, "^clust_19837$", 'titile')
+
+ISIP <- dplyr::filter (FragORF, grepl('^clust_231$', cluster))
+
+
 ```
 
 
 
-This chunk here is for exploring new things. 
+ISIP plots 
 ```{r}
+#Volcano plots for the different treatments for Frag. 
+
+ISIP <- dplyr::filter (FragORF, grepl('ISIP|isip', name))
+volcanoplotinteractive(ISIP, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")
+volcanoplotinteractive(ISIP, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")
+volcanoplotinteractive(ISIP, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
+volcanoplotinteractive(ISIP, "X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
+volcanoplotinteractive(ISIP, "X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
+volcanoplotinteractive(ISIP, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
+volcanoplotinteractive(ISIP, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
+volcanoplotinteractive(ISIP, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
+
+ISIP <- dplyr::filter (PseudoORF, grepl('ISIP|isip', name))
+volcanoplotinteractive(ISIP, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")    
+volcanoplotinteractive(ISIP, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")     
+volcanoplotinteractive(ISIP, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
+volcanoplotinteractive(ISIP, "X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
+volcanoplotinteractive(ISIP, "X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
+volcanoplotinteractive(ISIP, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
+volcanoplotinteractive(ISIP, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
+volcanoplotinteractive(ISIP, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
 
 
-explore <- dplyr::filter(FragORF, grepl ('betaine', name))
+heatmap(group, FragORF, "ISIP1")
+heatmap(group, FragORF, "ISIP2")
+heatmap(group, FragORF, "ISIP3")
+
+heatmap(group, PseudoORF, "ISIP1")
+heatmap(group, PseudoORF, "ISIP2")
+heatmap(group, PseudoORF, "ISIP3")
+
+
+I1f<- MCLclusterrawplot (FragMCL, '^clust_1814$', "ISIP1 - cluster 1814Frag")
+I1p<- MCLclusterrawplot (PseudoMCL, '^clust_1814$', "ISIP1 - cluster 1814Pseudo")
+I2f <- MCLclusterrawplot (FragMCL,'clust_9740', "ISIP2A - cluster 9740Frag")
+I2p <- MCLclusterrawplot (PseudoMCL,'clust_9740', "ISIP2A - cluster 9740Pseudo")
+I3f <- MCLclusterrawplot (FragMCL,'clust_1154', "ISIP3 - cluster 1154Frag")
+I3p <- MCLclusterrawplot (PseudoMCL,'clust_1154', "ISIP3 - cluster 1154Pseudo")
+#I4 <- MCLclusterrawplot (FragMCL,'clust_25598', "ISIP2A - cluster 25598 (not significant)")
+grid.arrange(I1f,I1p,I2f,I2p, I3f, I3p, nrow=3, ncol=2)
+
+```
 
 
 
-explore <- dplyr::filter(FragORF, grepl ('flavodoxin|Flav', name))
+
+Nitrogen 
+```{r}
+NiR <- MCLclusterrawplot(FragMCL, '^clust_411$', "Nitrate reductase - cluster 411Frag")
+NiRP <- MCLclusterrawplot(PseudoMCL, '^clust_411$', "Nitrate reductase - cluster 411Pseudo")
+NitTrans <- MCLclusterrawplot(FragMCL, '^clust_991$', "Nitrate transporter portein - cluster 991Frag")
+NitTransP <- MCLclusterrawplot(PseudoMCL, '^clust_991$', "Nitrate transporter portein - cluster 991Pseudo")
+NR <- MCLclusterrawplot(FragMCL, '^clust_3563$', "Nitrite reductase - cluster 3563Frag")
+NRP <- MCLclusterrawplot(PseudoMCL, '^clust_3563$', "Nitrite reductase - cluster 3563Pseudo")
+#Urease <- MCLclusterrawplot(FragMCL, '^clust_927$', "Urease - cluster 927Frag")
+#UreaseP <- MCLclusterrawplot(PseudoMCL, '^clust_927$', "Urease - cluster 927Pseudo")
+#URED <- MCLclusterrawplot(FragMCL, '^clust_20535$', "Urease Accessory Protein UreD - cluster 20535Frag")
+#UREDP <- MCLclusterrawplot(PseudoMCL, '^clust_20535$', "Urease Accessory Protein UreD - cluster 20535Pseudo")
+#grid.arrange(NiR, NiRP, NitTrans, NitTransP, NR,NRP, Urease, UreaseP, URED,UREDP,  nrow=6, ncol=2)
+
+grid.arrange(NiR, NiRP, NitTrans, NitTransP, NR,NRP,  nrow=3, ncol=2)
+
+ISIP <- dplyr::filter (FragORF, grepl('nitrite|Nitrite|nitrate|Nitrate', name))
+volcanoplotinteractive(ISIP, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")
+volcanoplotinteractive(ISIP, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")
+volcanoplotinteractive(ISIP, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
+volcanoplotinteractive(ISIP, "X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
+volcanoplotinteractive(ISIP, "X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
+volcanoplotinteractive(ISIP, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
+volcanoplotinteractive(ISIP, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
+volcanoplotinteractive(ISIP, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
 
 
 
-MCLclusterrawplot (FragMCL, '^clust_534$', "non-Iron responsive Flavodoxin in F. cylindrus")
+GS<- MCLclusterrawplot(FragMCL, '^clust_589$', "Glutamine Synthetase - cluster 589Frag")
+GSP<- MCLclusterrawplot(PseudoMCL, '^clust_589$', "Glutamine Synthetase - cluster 589Pseudo")
+GaS <- MCLclusterrawplot(FragMCL, '^clust_241$', "Glutamate Synthase - cluster 241Frag")
 
+GaSP <- MCLclusterrawplot(PseudoMCL, '^clust_241$', "Glutamate Synthase - cluster 241Pseudo")
+grid.arrange(GS,GSP, GaS, GaSP, nrow=2, ncol=2)
+
+MCLclusterrawplot(MCL, '^clust_999$', "Nitrite reductase - cluster 3563")
+
+LHC <- dplyr::filter (ORF, grepl('transaminase', name))
+
+NiRMCL <- dplyr::filter(FragORF, grepl ('ferritin|Ferritin', name))
+
+
+MCLclusterrawplot (PseudoMCL, '^clust_4956$', "Nitric Oxide Synthase -cluster 4956 Pseudo")
+
+MCLclusterrawplot (FragMCL, '^clust_4956$', "Nitric Oxide Synthase - cluster 4956 Frag")
+MCLclusterrawplot (FragMCL, '^clust_16690$', "Nitric Oxide Synthase Frag")
+
+MCLclusterrawplot (PseudoMCL, '^clust_15657$', "Nitric Oxide Synthase Frag")
+
+
+#Nitric oxide and iron in plants:an emerging and converging story. Interaction with ferritin ? 
+
+```
+
+
+
+
+Flavodoxin Frag
+```{r}
+flavodoxin <- dplyr::filter(FragORF, grepl ('flavodoxin|Flavodoxin', name))
+flavodoxin <- dplyr::filter(FragMCL, grepl ('flavodoxin|Flavo', name))
+
+
+volcanoplotinteractive(flavodoxin, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")
+volcanoplotinteractive(flavodoxin, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")
+volcanoplotinteractive(flavodoxin, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
+volcanoplotinteractive(flavodoxin, "X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
+volcanoplotinteractive(flavodoxin, "X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
+volcanoplotinteractive(flavodoxin, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
+volcanoplotinteractive(flavodoxin, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
+volcanoplotinteractive(flavodoxin, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
+
+
+MCLclusterrawplot (FragMCL, '^clust_534$', "Non-Iron responsive Flavodoxin in F. cylindrus")
 
 MCLclusterrawplot (FragMCL, '^clust_4660$', "Iron responsive Flavodoxin in F. cylindrus")
 
-MCLclusterrawplot (FragMCL, '^clust_611$', "fructose adolase")
+MCLclusterrawplot (FragMCL, '^clust_6705$', "Iron responsive Flavodoxin in F. cylindrus")
 
-MCLclusterrawplot (FragMCL, '^clust_8542$', "fructose adolase")
+flavodoxin <- dplyr::filter(FragORF, grepl ('flavodoxin|Flavodoxin', name))
+
+ORFplots(FragORF, "^clust_534$", "title")
+ORFplots(FragORF, "^clust_4660$", "title")
+ORFplots(FragORF, "^clust_6705", "title")
 
 
 ```
+
+
+Flavodoxin Pseudo
+```{r}
+
+flavodoxin <- dplyr::filter(PseudoORF, grepl ('flavodoxin|Flavodoxin', name))
+flavodoxinMCL <- dplyr::filter(PseudoMCL, grepl ('flavodoxin|Flavo', name))
+
+
+Feresponsive <- dplyr::filter(PseudoORF, grepl ('105_739', name))
+
+
+volcanoplotinteractive(flavodoxin, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")
+volcanoplotinteractive(flavodoxin, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")
+volcanoplotinteractive(flavodoxin, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
+volcanoplotinteractive(flavodoxin, "X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
+volcanoplotinteractive(flavodoxin, "X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
+volcanoplotinteractive(flavodoxin, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
+volcanoplotinteractive(flavodoxin, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
+volcanoplotinteractive(flavodoxin, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
+
+
+MCLclusterrawplot (FragMCL, '^clust_534$', "Non-Iron responsive Flavodoxin in F. cylindrus")
+
+MCLclusterrawplot (PseudoMCL, '^clust_4660$', "Iron responsive Flavodoxin in F. cylindrus")
+
+MCLclusterrawplot (FragMCL, '^clust_6705$', "Iron responsive Flavodoxin in F. cylindrus")
+
+
+
+```
+
+
+
 
 List of significant MCL clusters Extract only Significant genes 
 ```{r}
@@ -153,107 +304,47 @@ volcanoplotinteractive(LHC, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 
 
 
 
-#Adding text to the plot
+
 ```{r}
-
-  NiRMCL <- dplyr::filter(FragMCL, grepl ('^clust_411$', cluster))
-C0 <- NiRMCL[1, 52]
-C3 <- NiRMCL[1, 56]
-C6 <- NiRMCL[1, 60]
-
-  NiRMCL <- NiRMCL [c(76, 1:75)]
-  NiRMCL <- NiRMCL [-c(2:28, 47:76)]
-  names(NiRMCL)<- c("name", "A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
-  NiRMCL <-  melt (data = NiRMCL,id.vars = "name")
-  NiRMCL <- separate(NiRMCL, col = variable, into = c("Rep", "Fe", "temperature"))
   
-  ggplot(NiRMCL, aes(x=temperature, y=value, colour = Fe, shape = Rep ))+
-    geom_point(size = 3)+
-    scale_color_manual(values = c("red", "black"))+
-    xlab ("Temperature (°C)")+
-    ylab ("Expression-Value")+
-    ggtitle('graphtitle')+
-    theme_bw()+
-    theme(plot.title = element_text(hjust = 0.5))+
-    theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
-    scale_color_manual (name = "", labels = c("+Fe", "-Fe"), values = c("red", "black"))+
-    annotate ("text", x = 1:3, y=0.7, label= c(C0, C3, C6), color="darkgreen", size = 5)
-   #annotate ("arrow", x=1,xend = 1, ymin = 0.2,ymax=0.4, y = 0.3, shape="star", alpha=0.5, size=0.5 )
-
+volcanoplotinteractive(LHC, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")    
+volcanoplotinteractive(LHC, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")     
+volcanoplotinteractive(LHC, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
+volcanoplotinteractive(LHC, "X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
+volcanoplotinteractive(LHC, "X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
+volcanoplotinteractive(LHC, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
+volcanoplotinteractive(LHC, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
+volcanoplotinteractive(LHC, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C_Frag")
 ```
+  
+  
 
 
+
+This chunk here is for exploring new things. 
 ```{r}
 
-NiRMCL <- dplyr::filter(FragMCL, grepl ('rhodopsin|Rhodopsin', name))
 
-# NiRMCL <- dplyr::filter(FragORF, grepl ('retinal', name))
-
-
-MCLclusterrawplot (FragMCL, '^clust_231$', "Rhodopsin - cluster 231 Frag")
-
-MCLclusterrawplot (PseudoMCL, '^clust_19837$', "Rhodopsin - cluster 231 Pseudo")
+explore <- dplyr::filter(FragORF, grepl ('betaine', name))
 
 
-NiRMCL <- dplyr::filter(FragORF, grepl ('ferritin|Ferritin', name))
 
 
-MCLclusterrawplot (PseudoMCL, '^clust_4956$', "Nitric Oxide Synthase -cluster 4956 Pseudo")
 
-MCLclusterrawplot (FragMCL, '^clust_4956$', "Nitric Oxide Synthase - cluster 4956 Frag")
-MCLclusterrawplot (FragMCL, '^clust_16690$', "Nitric Oxide Synthase Frag")
+MCLclusterrawplot (FragMCL, '^clust_611$', "fructose adolase")
 
-MCLclusterrawplot (PseudoMCL, '^clust_15657$', "Nitric Oxide Synthase Frag")
-
-
-#Nitric oxide and iron in plants:an emerging and converging story. Interaction with ferritin ? 
+MCLclusterrawplot (FragMCL, '^clust_8542$', "fructose adolase")
 
 ```
 
 
 
-# ISIP plots for Frag and Pseudo
-```{r}
-I1f<- MCLclusterrawplot (FragMCL, '^clust_1814$', "ISIP1 - cluster 1814Frag")
-I1p<- MCLclusterrawplot (PseudoMCL, '^clust_1814$', "ISIP1 - cluster 1814Pseudo")
-I2f <- MCLclusterrawplot (FragMCL,'clust_9740', "ISIP2A - cluster 9740Frag")
-I2p <- MCLclusterrawplot (PseudoMCL,'clust_9740', "ISIP2A - cluster 9740Pseudo")
-I3f <- MCLclusterrawplot (FragMCL,'clust_1154', "ISIP3 - cluster 1154Frag")
-I3p <- MCLclusterrawplot (PseudoMCL,'clust_1154', "ISIP3 - cluster 1154Pseudo")
-#I4 <- MCLclusterrawplot (FragMCL,'clust_25598', "ISIP2A - cluster 25598 (not significant)")
-grid.arrange(I1f,I1p,I2f,I2p, I3f, I3p, nrow=3, ncol=2)
-```
-
-# MCL cluster Nitrogen plots for for Frag
-```{r}
-NiR <- MCLclusterrawplot(FragMCL, '^clust_411$', "Nitrate reductase - cluster 411Frag")
-NiRP <- MCLclusterrawplot(PseudoMCL, '^clust_411$', "Nitrate reductase - cluster 411Pseudo")
-NitTrans <- MCLclusterrawplot(FragMCL, '^clust_991$', "Nitrate transporter portein - cluster 991Frag")
-NitTransP <- MCLclusterrawplot(PseudoMCL, '^clust_991$', "Nitrate transporter portein - cluster 991Pseudo")
-NR <- MCLclusterrawplot(FragMCL, '^clust_3563$', "Nitrite reductase - cluster 3563Frag")
-NRP <- MCLclusterrawplot(PseudoMCL, '^clust_3563$', "Nitrite reductase - cluster 3563Pseudo")
-Urease <- MCLclusterrawplot(FragMCL, '^clust_927$', "Urease - cluster 927Frag")
-UreaseP <- MCLclusterrawplot(PseudoMCL, '^clust_927$', "Urease - cluster 927Pseudo")
-URED <- MCLclusterrawplot(FragMCL, '^clust_20535$', "Urease Accessory Protein UreD - cluster 20535Frag")
-UREDP <- MCLclusterrawplot(PseudoMCL, '^clust_20535$', "Urease Accessory Protein UreD - cluster 20535Pseudo")
-grid.arrange(NiR, NiRP, NitTrans, NitTransP, NR,NRP, Urease, UreaseP, URED,UREDP,  nrow=6, ncol=2)
 
 
 
 
 
 
-GS<- MCLclusterrawplot(FragMCL, '^clust_589$', "Glutamine Synthetase - cluster 589Frag")
-GSP<- MCLclusterrawplot(PseudoMCL, '^clust_589$', "Glutamine Synthetase - cluster 589Pseudo")
-GaS <- MCLclusterrawplot(FragMCL, '^clust_241$', "Glutamate Synthase - cluster 241Frag")
-GaSP <- MCLclusterrawplot(PseudoMCL, '^clust_241$', "Glutamate Synthase - cluster 241Pseudo")
-grid.arrange(GS,GSP, GaS, GaSP, nrow=2, ncol=2)
-
-MCLclusterrawplot(MCL, '^clust_999$', "Nitrite reductase - cluster 3563")
-
-LHC <- dplyr::filter (ORF, grepl('transaminase', name))
-
-```
 
 
 #Light Harvesting Complexes
@@ -520,4 +611,38 @@ o=ORFclusterrawplot(FragORF,'contig_915654_1_462_+', 'contig_915654_1_462_+')
 grid.arrange(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o, nrow=5, ncol=3)
 
 ```
+
+
+
+Ven diagram 
+
+
+#still need to figure this out. 
+```{r}
+
+#volcanoplot <- function(foldchange, FDR, graphtitle){
+  ##volcano <- ORF[c("orf_id", foldchange, FDR)]
+  #names(volcano) <- c("gene", "Fold", "FDR")
+  #volcano ["group"] <- "no-fold-change"
+
+  ### adding color: this categorizes the data based on significance
+  #significant but not large enough fold change
+  
+  
+volcano <- FragMCL[c("name", "X16_vs_17.log2fc" , "X16_vs_17.fdr")]
+volcano ["group"] <- "no-fold-change"
+names(volcano) <- c( "name", "Fold", "FDR", "group")
+
+volcano [which(volcano['FDR'] < 0.1 & abs(volcano['Fold']) < 2), "group"]<- "nofoldchange_significant" 
+  
+  # large enough fold change, not significant
+  volcano [which(volcano ['FDR'] > 0.1 & abs(volcano['Fold'])> 2), "group"] <- "fold-change_notsignificant"
+  
+  #Significant and fold change
+  volcano [which(volcano ['FDR'] < 0.1 & abs(volcano['Fold']) > 2), "group"] <- "fold-change_significant"
+
+
+```
+
+
 

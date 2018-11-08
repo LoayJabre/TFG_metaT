@@ -1,7 +1,5 @@
 #MCLclusterplot <- function(whichdata, whichprotein, graphtitle): This plots the mean of the three triplicates in a line, against the three temperatures with -/+ Fe in two different colors. 
 
-#MCLclusterrawplot <- function(whichdata, whichprotein, graphtitle): This plots the three points of the three triplicates (not the mean), against the three temperatures with -/+ Fe in two different colors. 
-
 MCLclusterplot <- function(whichdata, whichprotein, graphtitle){
   ISIPMCL <- dplyr::filter(whichdata, grepl (whichprotein, name))
   ISIPMCL <- ISIPMCL [c(76, 1:75)]
@@ -50,17 +48,58 @@ MCLclusterplot <- function(whichdata, whichprotein, graphtitle){
   #guides(colour = "Treatment")
 }
 
+###.....................................................................................................
+
+
+### ORF Plot. Similar to MCL cluster plot, this here plots all the ORFS in a cluster against the treatments
+
+ORFplots <- function(dataset, whichcluster, graphtitle ){
+
+cluster <- dplyr::filter(dataset, grepl (whichcluster, cluster))
+
+#cluster <- cluster [c(107, 1:106)]
+cluster <- cluster [-c(2:64, 83:107)]
+
+names(cluster)<- c("name", "A_0.5", "B_0.5", "C_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_3", "B_3", "C_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_6", "B_6", "C_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+
+cluster <-  melt (data = cluster ,id.vars = "name", measure.vars = c(2:19))
+
+ggplot(cluster, aes(x=variable, y=value, colour = name ))+
+  geom_point()+
+  geom_line(aes(group=name))+
+  # stat_summary(fun.y = mean, geom = "line", colour = "black", group =1, size = 1.25)+
+  #stat_summary(fun.data =  mean_se, geom = "errorbar", colour = "black")+
+  xlab ("Treatmet")+
+  ylab ("Expression-Value")+
+  ggtitle(graphtitle)+
+  theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))
+}
+
+
+
+
+##...................................................................................
+
+
+
+
+#MCLclusterrawplot <- function(whichdata, whichprotein, graphtitle): This plots the three points of the three triplicates (not the mean), against the three temperatures with -/+ Fe in two different colors. 
+#'protein' is just a place holder,it can be any word
 
 
 MCLclusterrawplot <- function(whichdata, whichprotein, graphtitle){
-  NiRMCL <- dplyr::filter(whichdata, grepl (whichprotein, cluster))
-  NiRMCL <- NiRMCL [c(76, 1:75)]
-  NiRMCL <- NiRMCL [-c(2:28, 47:76)]
-  names(NiRMCL)<- c("name", "A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
-  NiRMCL <-  melt (data = NiRMCL,id.vars = "name")
-  NiRMCL <- separate(NiRMCL, col = variable, into = c("Rep", "Fe", "temperature"))
-  
-  ggplot(NiRMCL, aes(x=temperature, y=value, colour = Fe, shape = Rep ))+
+   protein <- dplyr::filter(whichdata, grepl (whichprotein, cluster))
+  T0 <- protein[1, 52]
+  T3 <- protein[1, 70]
+  T6 <- protein[1, 74]
+  protein <- protein [c(76, 1:75)]
+  protein <- protein [-c(2:28, 47:76)]
+  names(protein)<- c("name", "A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+  protein <-  melt (data = protein,id.vars = "name")
+  protein <- separate(protein, col = variable, into = c("Rep", "Fe", "temperature"))
+  ggplot(protein, aes(x=temperature, y=value, colour = Fe, shape = Rep ))+
     geom_point(size = 3)+
     scale_color_manual(values = c("red", "black"))+
     xlab ("Temperature (°C)")+
@@ -69,10 +108,13 @@ MCLclusterrawplot <- function(whichdata, whichprotein, graphtitle){
     theme_bw()+
     theme(plot.title = element_text(hjust = 0.5))+
     theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
-    scale_color_manual (name = "", labels = c("+Fe", "-Fe"), values = c("red", "black"))
+    scale_color_manual (name = "", labels = c("+Fe", "-Fe"), values = c("red", "black"))+
+    annotate ("text", x = 1:3, y = 0, label= c(T0, T3, T6), color="darkgreen", size = 4)+
+    theme(axis.text.x = element_text (color= "black", face = "bold", size = 11))+
+    theme(axis.text.y = element_text (color= "black", face = "bold"))+
+    theme(axis.title.y = element_text (color= "black", face = "bold", size = 12))+
+    theme(axis.title.x = element_text (color= "black", face = "bold", size = 12))
 }
-
-
 
 ###`````````````````````````````````````````````````````````````````````````````````````````###
 
@@ -88,6 +130,8 @@ MCLclusterrawplot <- function(whichdata, whichprotein, graphtitle){
 
 heatmap <- function (group, dataset, proteinname){
   group <- dplyr::filter (dataset, grepl(proteinname, name))
+  group <- group [-c(2:64, 83:107)]
+  names(group)<- c("name", "A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
   group <- data.frame(group[,-1], row.names = group [,1])
   group <- as.matrix ((group))
   heatmap.2 (group, trace = "none", density = "none", col = bluered(100), cexRow = 0.8 , 
@@ -108,6 +152,8 @@ heatmap <- function (group, dataset, proteinname){
 
 heatmap_unclustered <- function (group, dataset, proteinname){
   group <- dplyr::filter (dataset, grepl(proteinname, name))
+  group <- group [-c(2:64, 83:107)]
+  names(group)<- c("name", "A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
   group <- data.frame(group[,-1], row.names = group [,1])
   group <- as.matrix ((group))
   heatmap.2 (group, trace = "none", density = "none", col = bluered(100), cexRow = 0.8, 
@@ -145,11 +191,7 @@ volcanoplot <- function(foldchange, FDR, graphtitle){
     
 
 
-
-
-
-
-###``````````````````````````````````````````````````###
+###`````````````````````````````'''''''''''''''''''''''`````````````````````###
 #this is an interactive volcano plot function 
 
 volcanoplotinteractive <- function(Dataset, Fold, FDR, volcanontitle){
@@ -227,20 +269,6 @@ xyplotISIP <- function(dataset, title){
           scale_y_log10()+
           theme(legend.position = "none"))
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
