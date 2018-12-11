@@ -82,9 +82,41 @@ ggplot(cluster, aes(x=variable, y=value, colour = name ))+
 
 ##...................................................................................
 
+## this plots specifc contigs
+contigplots <- function(dataset, whichcontig, graphtitle ){
+  
+  contig <- dplyr::filter(dataset, grepl (whichcontig, orf_id))
+  
+  T0 <- contig[1, 83]
+  T3 <- contig[1, 101]
+  T6 <- contig[1, 105]
+  contig <- contig [-c(2:64, 83:107)]
+  
+  names(contig)<- c("name", "A_noFe_0", "B_noFe_0", "C_noFe_0", "A_Fe_0", "B_Fe_0", "C_Fe_0", "A_noFe_3", "B_noFe_3", "C_noFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_noFe_6", "B_noFe_6", "C_noFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+  
+  contig <-  melt (data = contig ,id.vars = "name", measure.vars = c(2:19))
+  
+  
+  contig <- separate(data=contig, col = variable, into = c("Replicate", "Fe", "temperature"))
+  
+  ggplot(contig, aes(x=temperature, y=value, colour = Fe, shape = Replicate ))+
+    geom_point(size = 3)+
+    scale_color_manual(values = c("red", "black"))+
+    xlab ("Temperature (°C)")+
+    ylab ("Expression-Value")+
+    ggtitle(graphtitle)+
+    theme_bw()+
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
+    scale_color_manual (name = "", labels = c("+Fe", "-Fe"), values = c("red", "black"))+
+    annotate ("text", x = 1:3, y = 0, label= c(T0, T3, T6), color="darkgreen", size = 4, fontface="bold")+
+    theme(axis.text.x = element_text (color= "black", face = "bold", size = 11))+
+    theme(axis.text.y = element_text (color= "black", face = "bold"))+
+    theme(axis.title.y = element_text (color= "black", face = "bold", size = 12))+
+    theme(axis.title.x = element_text (color= "black", face = "bold", size = 12))
+}
 
-
-
+#``````````````````````````````````````````````````````````````````````````````````````
 #MCLclusterrawplot <- function(whichdata, whichprotein, graphtitle): This plots the three points of the three triplicates (not the mean), against the three temperatures with -/+ Fe in two different colors. 
 #'protein' is just a place holder,it can be any word
 
@@ -109,11 +141,11 @@ MCLclusterrawplot <- function(whichdata, whichprotein, graphtitle){
     theme(plot.title = element_text(hjust = 0.5))+
     theme(axis.text.x = element_text(angle = 50, vjust = 1.0, hjust = 1.0))+
     scale_color_manual (name = "", labels = c("+Fe", "-Fe"), values = c("red", "black"))+
-    annotate ("text", x = 1:3, y = 0, label= c(T0, T3, T6), color="darkgreen", size = 4)+
-    theme(axis.text.x = element_text (color= "black", face = "bold", size = 11))+
-    theme(axis.text.y = element_text (color= "black", face = "bold"))+
-    theme(axis.title.y = element_text (color= "black", face = "bold", size = 12))+
-    theme(axis.title.x = element_text (color= "black", face = "bold", size = 12))
+   annotate ("text", x = 1:3, y = 0, label= c(T0, T3, T6), color="darkgreen", size = 4, fontface="bold")+
+    theme(axis.text.x = element_text (color= "black", face = "bold", size = 14))+
+    theme(axis.text.y = element_text (color= "black", face = "bold", size = 14))+
+    theme(axis.title.y = element_text (color= "black", face = "bold", size = 16))+
+    theme(axis.title.x = element_text (color= "black", face = "bold", size = 16))
 }
 
 ###`````````````````````````````````````````````````````````````````````````````````````````###
@@ -131,11 +163,11 @@ MCLclusterrawplot <- function(whichdata, whichprotein, graphtitle){
 heatmap <- function (group, dataset, proteinname){
   group <- dplyr::filter (dataset, grepl(proteinname, name))
   group <- group [-c(2:64, 83:107)]
-  names(group)<- c("name", "A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+  names(group)<- c("name", "A_noFe_0", "B_noFe_0", "C_noFe_0", "A_Fe_0", "B_Fe_0", "C_Fe_0", "A_noFe_3", "B_noFe_3", "C_noFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_noFe_6", "B_noFe_6", "C_noFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
   group <- data.frame(group[,-1], row.names = group [,1])
   group <- as.matrix ((group))
   heatmap.2 (group, trace = "none", density = "none", col = bluered(100), cexRow = 0.8 , 
-             cexCol =0.8, margins = c(5,12), scale = "row")
+             cexCol =1, margins = c(5,12), scale = "row")
 }
 
 ###`````````````````````````````````````````````````````````````###
@@ -162,25 +194,25 @@ heatmap_unclustered <- function (group, dataset, proteinname){
             }
 ###``````````````````````````````````````````````````````````````###
 
-volcanoplot <- function(foldchange, FDR, graphtitle){
-  volcano <- ORF[c("orf_id", foldchange, FDR)]
+volcanoplot <- function(dataset, foldchange, FDR, graphtitle){
+  volcano <- dataset[c("orf_id", foldchange, FDR)]
   names(volcano) <- c("gene", "Fold", "FDR")
   volcano ["group"] <- "no-fold-change"
 
   ### adding color: this categorizes the data based on significance
   #significant but not large enough fold change
-  volcano [which(volcano['FDR'] < 0.1 & abs(volcano['Fold']) < 2), "group"]<- "nofoldchange_significant" 
+  volcano [which(volcano['FDR'] < 0.05 & abs(volcano['Fold']) < 2), "group"]<- "nofoldchange_significant" 
   
   # large enough fold change, not significant
-  volcano [which(volcano ['FDR'] > 0.1 & abs(volcano['Fold'])> 2), "group"] <- "fold-change_notsignificant"
+  volcano [which(volcano ['FDR'] > 0.05 & abs(volcano['Fold'])> 2), "group"] <- "fold-change_notsignificant"
   
   #Significant and fold change
-  volcano [which(volcano ['FDR'] < 0.1 & abs(volcano['Fold']) > 2), "group"] <- "fold-change_significant"
+  volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 2), "group"] <- "fold-change_significant"
   
   ggplot (data = volcano, aes(x= Fold, y=-log10(FDR), color= group)) +
     geom_point (alpha=0.7, size = 2,shape = 19)+
-    geom_hline (yintercept = 1.3, col = "blue", lty = 2, lwd=1 )+
-    geom_vline (xintercept = c(-1,1), col = "blue", lty = 2, lwd=1 )+
+    geom_hline (yintercept = 1, col = "blue", lty = 2, lwd=1 )+
+    geom_vline (xintercept = c(-2,2), col = "blue", lty = 2, lwd=1 )+
     xlab("Log2 Fold Change")+ ylab("-Log10 FDR")+
     ggtitle(graphtitle)+
     theme_bw()+
@@ -189,6 +221,64 @@ volcanoplot <- function(foldchange, FDR, graphtitle){
     #geom_text(aes(label=ifelse(FDR<0.05,as.character(gene),'')),hjust=0,vjust=0, size = 2.6)
 }
     
+
+
+
+
+volcanoplotMCL <- function(dataset, foldchange, FDR, a, b, c, d, e, f, graphtitle){
+  
+  volcano <- dataset[c("name", foldchange, FDR, a, b, c, d, e, f)]
+  names(volcano) <- c("gene", "Fold", "FDR", "a", "b", "c", "d", "e", "f")
+  volcano['size'] <- rowMeans( volcano[, c(4:9)] )+2
+  volcano ["group"] <- "no-fold-change"
+  
+  ### adding color: this categorizes the data based on significance
+  #significant but not large enough fold change
+  volcano [which(volcano['FDR'] < 0.05 & abs(volcano['Fold']) < 2), "group"]<- "nofoldchange_significant" 
+  
+  # large enough fold change, not significant
+  volcano [which(volcano ['FDR'] > 0.05 & abs(volcano['Fold'])> 2), "group"] <- "fold-change_notsignificant"
+  
+  #Significant and fold change
+  volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 2), "group"] <- "fold-change_significant"
+  
+  ggplot (data = volcano, aes(x= Fold, y=-log10(FDR), color= group)) +
+    geom_point (alpha=0.7, size = volcano$size, shape = 19)+
+    geom_hline (yintercept = 1.301, col = "blue", lty = 2, lwd=0.5 )+
+    geom_vline (xintercept = c(-2,2), col = "blue", lty = 2, lwd=0.5 )+
+    xlab("Log2 Fold Change")+ ylab("-Log10 FDR")+
+    ggtitle(graphtitle)+
+    theme_bw()+
+    theme(plot.title = element_text(hjust = 0.5))
+  #+
+  #geom_text(aes(label=ifelse(FDR<0.05,as.character(gene),'')),hjust=0,vjust=0, size = 2.6)
+}
+
+
+
+volcanoplotMCLinteractive <- function(Dataset, Fold, FDR, volcanontitle){
+  volcano <- Dataset[c("name", Fold, FDR)]
+  names(volcano) <- c("gene", "Fold", "FDR")
+  
+  volcano ["group"] <- "nofoldchange_notsignificant"
+  
+  ### adding color: this categorizes the data based on significance
+  #significant but not large enough fold change
+  volcano [which(volcano['FDR'] < 0.1 & abs(volcano['Fold']) < 2), "group"]<- "nofoldchange_significant" 
+  # large enough fold change, not significant
+  volcano [which(volcano ['FDR'] > 0.1 & abs(volcano['Fold'])> 2), "group"] <- "foldchange_notsignificant"
+  #Significant and fold change
+  volcano [which(volcano ['FDR'] < 0.1 & abs(volcano['Fold']) > 2), "group"] <- "foldchange_significant"
+  
+  x <- list (title ="Log2 Fold Change")
+  y <- list (title = "-Log10 FDR")
+  plot_ly(data = volcano, x = volcano$Fold, y = -log10(volcano$FDR), text = volcano$gene, mode = "markers", color = volcano$group) %>% 
+    layout(title = volcanontitle)%>%
+    layout (xaxis = x, yaxis = y)
+  
+}
+
+
 
 
 ###`````````````````````````````'''''''''''''''''''''''`````````````````````###

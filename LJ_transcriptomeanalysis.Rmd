@@ -8,17 +8,8 @@ editor_options:
 ---
 
 
-Overall Data 
-FragORFs: 64471
-FragMCL: 14428
-PseudoORFs: 28616
-PseudoMCL: 10852
-
-
 Load packages and functions. Some packages need to be loaded in this order, or they will clash. 
 ```{r message=FALSE, warning=FALSE, include=FALSE, results='hide'}
-
-library(shiny)
 library(ggplot2)
 library(plyr)
 library(dplyr)
@@ -30,43 +21,235 @@ library(scales)
 library(calibrate)
 library(tidyr)
 library(plotly)
-#library(scatterplot3d)
-library(rgl)
 library(gsubfn)
 library(ggrepel)
 library(gridExtra)
 library(htmlwidgets)
 library(VennDiagram)
+library(caroline)
+library(edgeR)
+library(manta)
 
 source("fragtranscript_functions.R")
-
-#Used functions: 
-#MCLclusterplot <- function(whichdata, whichprotein, graphtitle): This plots the mean of the three triplicates in a line, against the three temperatures with -/+ Fe in two different colors. 
-
-#MCLclusterrawplot <- function(whichdata, whichprotein, graphtitle): This plots the three points of the three triplicates (not the mean), against the three temperatures with -/+ Fe in two different colors. 
+#library(scatterplot3d)
+#library(rgl)
 ```
- 
  
 Upload ORF and MCL cluster files, and extract only Fragilariopsis and Pseudo-nitzchia data.  
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 allMCL <- read.csv("allMCL.csv", header = TRUE, sep = "," )
-allMCL$name <- paste (allMCL$cluster, allMCL$ann_desc)
-
+allMCL$name <- paste (allMCL$cluster, allMCL$ann_desc, allMCL$Taxa.group)
 FragMCL <- dplyr::filter (allMCL, grepl('Fragilariopsis', Taxa.group))
 PseudoMCL <- dplyr::filter (allMCL, grepl('Pseudo-nit', Taxa.group))
+alldiatomsMCL <- dplyr::filter (allMCL, grepl('Pseudo-nit|Fragilariopsis|Diatom', Taxa.group))
 
 all <- read.csv("allORF.csv", header = TRUE, sep = "," )
 all$name <- paste(all$orf_id, all$cluster, all$kegg_desc, all$KO_desc, all$KO_pathway, all$KOG_desc, all$KOG_class, all$best_hit_annotation, all$PFams_desc, all$TIGRFams_desc)
+all <- dplyr::filter (all, !grepl('^$', grpnorm_taxgrp))
+alldiatomsORF <- dplyr::filter (all, grepl('Pseudo-nit|Fragilariopsis|Diatom',grpnorm_taxgrp))
 
 PseudoORF <- dplyr::filter (all, grepl('Pseudo-nitzschi', grpnorm_taxgrp))
 PseudoORF <- dplyr::filter (PseudoORF, grepl('Eukar', domain))
-
 FragORF <- dplyr::filter (all, grepl('Fragilariopsis', grpnorm_taxgrp))
 FragORF <- dplyr::filter (FragORF, grepl('Eukar', domain))
+
+allnew <- read.csv("tfg_de_annotation_allTFG.grpnorm_mmetsp_fc_pn_reclassified.csv")
 ```
 
 
-Rhodopsin plots
+Look at overall general trends in the data. 
+```{r}
+
+
+volcanoplotMCL(FragMCL,"X12_vs_16.log2fc", "X12_vs_16.fdr", "TFG_t5_1A", "TFG_t5_1B", "TFG_t5_1C", "TFG_t5_7A", "TFG_t5_7B", "TFG_t5_7C", "Temp Test: 0C_VS_6C" )
+
+
+  volcano <- FragMCL[c(1,76, 58, 59, 28:30, 40:42)]
+  names(volcano) <- c("taxon", "gene", "Fold", "FDR", "a", "b", "c", "d", "e", "f")
+  volcano ["group"] <- "no-fold-change"
+  #volcano$Fe <- volcano$Fe+2  
+ # volcano$noFe <- volcano$noFe+2
+  
+  volcano['size'] <- log(rowMeans( volcano[, c(5:10)] )+1)
+  #volcano['size'] <- ((volcano$Fe)+(volcano$noFe))/2
+  #volcano['size'] <- (log2(volcano$Fe))+(log2(volcano$noFe))
+  #volcano['size'] <- (log2(((volcano$Fe)+(volcano$noFe))/2))
+  #volcano['size'] <- (log2((volcano$Fe)+(volcano$noFe)))
+
+  volcano [which(volcano['FDR'] < 0.05 & abs(volcano['Fold']) < 2), "group"]<- "nofoldchange_significant" 
+  
+  volcano [which(volcano ['FDR'] > 0.05 & abs(volcano['Fold'])> 2), "group"] <- "fold-change_notsignificant"
+  
+  volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 2), "group"] <- "fold-change_significant"
+
+  ggplot (data = volcano, aes(x= Fold, y=-log10(FDR), color= group)) +
+    geom_point (alpha=0.7,size =  volcano$size, shape = 19 )+
+    geom_hline (yintercept = 1.301, col = "blue", lty = 2, lwd=0.5 )+
+    geom_vline (xintercept = c(-2,2), col = "blue", lty = 2, lwd=0.5 )+
+    xlab("Log2 Fold Change")+ ylab("-Log10 FDR")+
+    ggtitle('graphtitle')+
+    theme_bw()+
+    theme(plot.title = element_text(hjust = 0.5))
+  
+
+
+
+  
+  
+  
+  
+  x <- list (title ="Log2 Fold Change")
+  y <- list (title = "-Log10 FDR")
+  plot_ly(data = volcano, x = volcano$Fold, y = -log10(volcano$FDR), text = volcano$gene, mode = "markers", color = volcano$group, size = ~size ) %>% 
+    layout (xaxis = x, yaxis = y)
+  
+volcanoplotMCLinteractive(FragMCL, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Temp Test: 0C_VS_3C")
+volcanoplot(all, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")
+volcanoplot(all, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
+volcanoplot(all, "X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
+volcanoplot(all, "X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
+volcanoplote(all, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
+volcanoplot(all, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
+volcanoplote(all, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
+```
+
+
+Manta plots
+```{r}
+mantadata <- allMCL [,c(2,1,28,29,30,43,44,45)]
+mantadata <- dplyr::filter (mantadata, grepl('Pseudo-nitzschia|Diatom|Fragilariopsis', Taxa.group))
+mantadata$cluster <- make.unique(as.character(mantadata$cluster), sep ="_")
+mantadata <- mantadata [,-c(2)]
+  
+    colname <- "mean"
+  i=0
+  while (i < 2){
+    colname <- paste(colname, i)
+    col1 = 2+(i*3)
+    col2 = 4+(i*3)
+   mantadata[[colname]] <- rowMeans( mantadata[, c(col1:col2)] )
+    i <- i+1
+  }
+  
+  
+mantadata <- mantadata [,-c(2:7)]
+
+
+mantadata <-data.frame(mantadata[,-1], row.names = mantadata [,1])
+names(mantadata)<- c('0C_0Fe', '6C_+Fe')
+
+
+
+
+mantadata.annot <- allMCL [,c(2,6, 4,5,1)]
+mantadata.annot <- dplyr::filter (mantadata.annot, grepl('Pseudo-nitzschia|Diatom|Fragilariopsis', Taxa.group))
+mantadata.annot$cluster <- make.unique(as.character(mantadata.annot$cluster), sep ="_")
+
+mantadata.annot %>% mutate_if(is.factor, as.character) -> mantadata.annot
+
+#mantadata.annot$ann_desc[mantadata.annot$ann_desc==""] <- "NA"
+#mantadata.annot$ann_type[mantadata.annot$ann_type==""] <- "NA"
+#mantadata.annot$ann_id[mantadata.annot$ann_id==""] <- "NA"
+
+
+
+obj1 <- counts2manta(mantadata, annotation = mantadata.annot, a.merge.clmn = 'cluster', agg.clmn = 'ann_desc', meta.clmns = c('Taxa.group','ann_type'), gene.clmns = c('ann_desc', 'ann_type', 'ann_id'))
+
+
+#plot(obj1, main='Diatom Gene Expression\n at Ocean Station Papa', meta.lev='Taxa.group', lgd.pos='bottomright')
+
+#plot(obj1, main='+/-FE', meta.lev='Taxa.group', lgd.pos='bottomright')
+
+
+manta.ra(obj1, uniques=0, meta.level = 'Taxa.group', main ="-Fe0C vs +Fe6C" )
+
+
+caroline::hyperplot(obj1,annout = mantadata.annot, browse=TRUE, cex = 1, w = 72 * 8, h = 72 * 6 , main=main.hov)
+
+
+#plot(obj1, uniques=1,  meta.level = 'Taxa.group', main ="-Fe0C vs +Fe6C")
+
+
+volcanoplotMCL(DiatomMCL, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe3C")
+
+#obj <- counts2manta(cts, annotation=cts.annot,
+#+ a.merge.clmn='query_seq', agg.clmn='what_def', meta.clmns=c('family','genus_sp'),
+#+ gene.clmns=c('what_def','kid','pathway'))
+
+
+
+
+
+```
+ 
+Number of DE transcrips  
+```{r}
+
+sub_allnew <- allnew [, c(8:52, 114,115:131, 2, 96, 97, 6:7, 3:5)]
+
+
+sum(allnew$temp_6vstemp_05 !=0)
+
+sum(allnew$X12_vs_16.fdr <0.05)
+
+sum(all$X12_vs_14.fdr <0.001)
+sum(all$X12_vs_16.fdr <0.001)
+
+sum(all$X12_vs_13.fdr <0.001)
+sum(all$X14_vs_15.fdr <0.001)
+sum(all$X16_vs_17.fdr <0.001)
+
+
+all$zerocolumn <- all$TFG_t5_1A+all$TFG_t5_1B+all$TFG_t5_1C
+sum(all$zerocolumn ==0)
+
+
+
+
+newORF <- dplyr::filter(newORF, grepl('Pseudo-nit|Fragilariopsis|Diatom',grpnorm_taxgrp))
+
+newORF <- newORF [, -c(1,2,29:34)]
+
+newORF[,8:25] <- newORF$norm_factors_group*newORF[,8:25]
+
+newanalysis <- cbind(allnew, newORF)
+names(newanalysis)[1] <- 'Jjdjd'
+newanalysis <- newanalysis [, c(1,115,2:114, 116:141 )]
+newanalysis[,66:83]<- newanalysis$norm_factors_group*newanalysis[,66:83]
+newdata <- newanalysis [, -c(1,116:141, 109, 46:64 )]
+newdata <- newdata [, c(88, 46:87, 89:94)]
+newdata1 <- newdata [, c(1, 21, 39, 43, 45, 23, 46, 27, 47, 25, 48, 29, 49)]
+
+```
+
+ RA plot
+```{r}
+RAp <- read.csv("RA.csv")
+raPlot(mantadata$`0C_0Fe`, mantadata$`6C_+Fe`, uniques = 0)
+
+
+
+
+RA <- raPlot(RAp$noFe, RAp$Fe, uniques = TRUE, jitter = 0.3)
+cond.unique <- apply(cbind(RAp$noFe, RAp$Fe), 1, function(d) any(d==0))
+points(RA$A,RA$R, col=c('black','orange')[cond.unique+1])
+
+RA <- raPlot(FragMCL$TFG_t5_1B, FragMCL$TFG_t5_7C, pch = '', uniques = FALSE)
+cond.unique <- apply(cbind(FragMCL$TFG_t5_1B,FragMCL$TFG_t5_7C), 1, function(d) any(d==0))
+points(RA$A,RA$R, col=c('black','orange')[cond.unique+1])
+
+RA <- raPlot(a, b, pch='')
+cond.unique <- apply(cbind(a,b), 1, function(d) any(d==0))
+points(RA$A,RA$R, col=c('black','orange')[cond.unique+1])
+
+
+            
+#use EdgeR to identify outliers 
+
+```
+ 
+
+#Rhodopsin plots
 ```{r}
 ISIP <- dplyr::filter (FragORF, grepl('rhodopsin|Rhodopsin', name))
 volcanoplotinteractive(ISIP, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")
@@ -79,10 +262,11 @@ volcanoplotinteractive(ISIP, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_V
 #interesting synergy test. 
 volcanoplotinteractive(ISIP, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
 
-heatmap_unclustered(group, PseudoORF, "clust_231 ")
-heatmap(group, PseudoORF, "rhodopsin|Rhodopsin")
 
-R1f <- MCLclusterrawplot (FragMCL, '^clust_231$', "Rhodopsin - cluster 231 Frag")
+heatmap_unclustered(group, ISIP, "clust_231 ")
+heatmap(group, ISIP, "rhodopsin|Rhodopsin")
+
+ MCLclusterrawplot (FragMCL, '^clust_231$', "Rhodopsin - cluster 231 Frag")
 R1p <- MCLclusterrawplot (PseudoMCL, '^clust_231$', "Rhodopsin - cluster 231 Pseudo")
 R2f <- MCLclusterrawplot (FragMCL, '^clust_1548$', "Rhodopsin - cluster 1548 Frag")
 R2p <- MCLclusterrawplot (PseudoMCL, '^clust_1548$', "Rhodopsin - cluster 1548 Pseudo")
@@ -91,6 +275,7 @@ R3p <- MCLclusterrawplot (PseudoMCL, '^clust_10297$', "Rhodopsin - cluster 10297
 R4f <- MCLclusterrawplot (FragMCL, '^clust_19837$', "Rhodopsin - cluster 19837 Frag")
 R4p <- MCLclusterrawplot (PseudoMCL, '^clust_19837$', "Rhodopsin - cluster 19837 Pseudo")
 
+MCLclusterrawplot (FragMCL, '^clust_231$', "Rhodopsin - cluster 231 Frag")
 
 grid.arrange(R1f, R1p, R2f, R2p, R3f, R3p, nrow=3, ncol=2)
 
@@ -102,16 +287,15 @@ ORFplots(FragORF, "^clust_19837$", 'titile')
 
 ISIP <- dplyr::filter (FragORF, grepl('^clust_231$', cluster))
 
-
 ```
 
 
 
-ISIP plots 
+#ISIP plots 
 ```{r}
 #Volcano plots for the different treatments for Frag. 
 
-ISIP <- dplyr::filter (FragORF, grepl('ISIP|isip', name))
+ISIP <- dplyr::filter (PseudoORF, grepl('ISIP|isip', name))
 volcanoplotinteractive(ISIP, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")
 volcanoplotinteractive(ISIP, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")
 volcanoplotinteractive(ISIP, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
@@ -155,7 +339,7 @@ grid.arrange(I1f,I1p,I2f,I2p, I3f, I3p, nrow=3, ncol=2)
 
 
 
-Nitrogen 
+#Nitrogen 
 ```{r}
 NiR <- MCLclusterrawplot(FragMCL, '^clust_411$', "Nitrate reductase - cluster 411Frag")
 NiRP <- MCLclusterrawplot(PseudoMCL, '^clust_411$', "Nitrate reductase - cluster 411Pseudo")
@@ -163,6 +347,11 @@ NitTrans <- MCLclusterrawplot(FragMCL, '^clust_991$', "Nitrate transporter porte
 NitTransP <- MCLclusterrawplot(PseudoMCL, '^clust_991$', "Nitrate transporter portein - cluster 991Pseudo")
 NR <- MCLclusterrawplot(FragMCL, '^clust_3563$', "Nitrite reductase - cluster 3563Frag")
 NRP <- MCLclusterrawplot(PseudoMCL, '^clust_3563$', "Nitrite reductase - cluster 3563Pseudo")
+
+heatmap(group, FragORF, "ISIP")
+
+
+
 #Urease <- MCLclusterrawplot(FragMCL, '^clust_927$', "Urease - cluster 927Frag")
 #UreaseP <- MCLclusterrawplot(PseudoMCL, '^clust_927$', "Urease - cluster 927Pseudo")
 #URED <- MCLclusterrawplot(FragMCL, '^clust_20535$', "Urease Accessory Protein UreD - cluster 20535Frag")
@@ -212,10 +401,21 @@ MCLclusterrawplot (PseudoMCL, '^clust_15657$', "Nitric Oxide Synthase Frag")
 
 
 
-Flavodoxin Frag
+#Flavodoxin Frag
 ```{r}
 flavodoxin <- dplyr::filter(FragORF, grepl ('flavodoxin|Flavodoxin', name))
 flavodoxin <- dplyr::filter(FragMCL, grepl ('flavodoxin|Flavo', name))
+
+
+
+MCLclusterrawplot (FragMCL, '^clust_534$', " Frag-Flavodoxin- cluster534")
+
+x <- ORFplots(FragORF, "^clust_534$", "title")
+ggplotly(x)
+
+contigplots(FragORF,"contig_1360422_94_705+", "Frag-Flavodoxin-cluster534-contig_1175010_45_704_+")
+
+ contigplots(FragORF,"644824_210_908+", "Frag-Flavodoxin-cluster534-contig_1360422_94_705_+")
 
 
 volcanoplotinteractive(flavodoxin, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")
@@ -227,14 +427,16 @@ volcanoplotinteractive(flavodoxin, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test
 volcanoplotinteractive(flavodoxin, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
 volcanoplotinteractive(flavodoxin, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
 
+volcanoplot(flavodoxin, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
 
-MCLclusterrawplot (FragMCL, '^clust_534$', "Non-Iron responsive Flavodoxin in F. cylindrus")
-
+MCLclusterrawplot (FragMCL, '^clust_534$', "Flavodoxin cluster 534. Frag")
 MCLclusterrawplot (FragMCL, '^clust_4660$', "Iron responsive Flavodoxin in F. cylindrus")
-
 MCLclusterrawplot (FragMCL, '^clust_6705$', "Iron responsive Flavodoxin in F. cylindrus")
-
 flavodoxin <- dplyr::filter(FragORF, grepl ('flavodoxin|Flavodoxin', name))
+
+MCLclusterrawplot (FragMCL, '^clust_1452$', "Flavodoxin cluster 534. Frag")
+MCLclusterrawplot (FragMCL, '^clust_1816$', "Flavodoxin cluster 534. Frag")
+MCLclusterrawplot (FragMCL, '^clust_3563$', "Flavodoxin cluster 534. Frag")
 
 ORFplots(FragORF, "^clust_534$", "title")
 ORFplots(FragORF, "^clust_4660$", "title")
@@ -244,15 +446,11 @@ ORFplots(FragORF, "^clust_6705", "title")
 ```
 
 
-Flavodoxin Pseudo
+#Flavodoxin Pseudo
 ```{r}
-
 flavodoxin <- dplyr::filter(PseudoORF, grepl ('flavodoxin|Flavodoxin', name))
-flavodoxinMCL <- dplyr::filter(PseudoMCL, grepl ('flavodoxin|Flavo', name))
 
-
-Feresponsive <- dplyr::filter(PseudoORF, grepl ('105_739', name))
-
+flavodoxinMCL <- dplyr::filter(PseudoMCL, grepl ('flavodoxin|Flavodoxin', name))
 
 volcanoplotinteractive(flavodoxin, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")
 volcanoplotinteractive(flavodoxin, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")
@@ -264,12 +462,15 @@ volcanoplotinteractive(flavodoxin, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy
 volcanoplotinteractive(flavodoxin, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
 
 
-MCLclusterrawplot (FragMCL, '^clust_534$', "Non-Iron responsive Flavodoxin in F. cylindrus")
-
-MCLclusterrawplot (PseudoMCL, '^clust_4660$', "Iron responsive Flavodoxin in F. cylindrus")
-
+MCLclusterrawplot (FragMCL, '^clust_534$', "Non-Iron responsive Flavodoxin in Fragilariopsis spp.")
+MCLclusterrawplot (FragMCL, '^clust_4660$', "Iron responsive Flavodoxin in Fragilariopsis spp.")
 MCLclusterrawplot (FragMCL, '^clust_6705$', "Iron responsive Flavodoxin in F. cylindrus")
 
+x <-ORFplots(PseudoORF, "^clust_534$", "clust_534")
+
+ggplotly(x)
+
+contigplots(PseudoORF,"contig_678095_1_656_+", "Pseudo-Flavodoxin-cluster534-contig_678095_1_656_+" )
 
 
 ```
@@ -277,7 +478,7 @@ MCLclusterrawplot (FragMCL, '^clust_6705$', "Iron responsive Flavodoxin in F. cy
 
 
 
-List of significant MCL clusters Extract only Significant genes 
+#List of significant MCL clusters Extract only Significant genes 
 ```{r}
 volcano <- FragMCL[c("name", "X12_vs_14.log2fc", "X12_vs_14.fdr")]
 names(volcano) <- c("gene", "Fold", "FDR")
@@ -321,10 +522,8 @@ volcanoplotinteractive(LHC, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 
 
 
 
-This chunk here is for exploring new things. 
+#This chunk here is for exploring new things. 
 ```{r}
-
-
 explore <- dplyr::filter(FragORF, grepl ('betaine', name))
 
 
@@ -336,13 +535,6 @@ MCLclusterrawplot (FragMCL, '^clust_611$', "fructose adolase")
 MCLclusterrawplot (FragMCL, '^clust_8542$', "fructose adolase")
 
 ```
-
-
-
-
-
-
-
 
 
 
@@ -553,8 +745,6 @@ volcanoplotinteractive(LHC, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 
 
 
 ```{r}
-
-
 ORFclusterrawplot <- function(whichdata, whichprotein, graphtitle){
   NiRMCL <- dplyr::filter(whichdata, grepl (whichprotein, name))
 NiRMCL <- NiRMCL [c(107, 1:106)]
@@ -578,8 +768,6 @@ NiRMCL <- NiRMCL [c(107, 1:106)]
 }
 
 
-
-
 NiRMCL <- dplyr::filter(FragORF, grepl ('contig_1158537_1_423_+', name))
 
 
@@ -587,8 +775,6 @@ NiRMCL <- dplyr::filter(FragORF, grepl ('contig_1158537_1_423_+', name))
 ORFclusterrawplot(FragORF,'contig_709325_277_602_-', "CytC6") 
 
 ORFclusterrawplot(FragORF,'contig_767007_35_424_+', "CytC6") 
-
-
 
 
 a = ORFclusterrawplot(FragORF,'contig_1175010_45_704_+', 'contig_1175010_45_704_+') 
@@ -612,9 +798,6 @@ grid.arrange(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o, nrow=5, ncol=3)
 
 ```
 
-
-
-Ven diagram 
 
 
 #still need to figure this out. 
@@ -641,8 +824,64 @@ volcano [which(volcano['FDR'] < 0.1 & abs(volcano['Fold']) < 2), "group"]<- "nof
   #Significant and fold change
   volcano [which(volcano ['FDR'] < 0.1 & abs(volcano['Fold']) > 2), "group"] <- "fold-change_significant"
 
+  
+  
+  
+  
+  
+  
 
 ```
 
+#Pie Chart plot
+```{r}
+df <- data.frame(
+  group = c("Male", "Female", "Child"),
+  value = c(25, 25, 50)
+  )
+head(df)
 
+
+
+bp<- ggplot(df, aes(x="", y=value, fill=group))+
+geom_bar(width = 1, stat = "identity")
+bp
+
+pie <- bp + coord_polar("y", start=0)
+pie
+
+
+PracticepieMCL <- dplyr::filter (allMCL, grepl('Fragilariopsis|Diatom|Pseudo-nit', Taxa.group))
+PracticepieMCL <- dplyr::filter (PracticepieMCL, grepl('clust_1', cluster))
+
+PracticepieMCL <- PracticepieMCL [, c(1,2, 28,29,30)]
+
+
+ colname <- "mean"
+  i=0
+  while (i < 1){
+    colname <- paste(colname, i)
+    col1 = 2+(i*3)
+    #col2 = 4+(i*3)
+   PracticepieMCL[[colname]] <- rowMeans( PracticepieMCL[, c(col1:col2)] )
+    i <- i+1
+  }
+
+
+PracticepieMCL$mean <- rowMeans(PracticepieMCL[,c(3,4,5)]) 
+
+
+PracticepieMCL <- PracticepieMCL [, c(1,2,6)]
+
+PracticepieMCL$name <- paste (PracticepieMCL$Taxa.group,"_",PracticepieMCL$cluster)
+                              
+PracticepieMCL <- PracticepieMCL [, c(4,3)]
+
+getAnywhere('manta.ra')
+
+PracticepieMCL1 <- separate(PracticepieMCL, col=name, into = c("f", "jd", "sjs", "js"))
+
+
+
+```
 
