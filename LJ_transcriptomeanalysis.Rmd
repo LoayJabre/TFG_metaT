@@ -1,15 +1,8 @@
----
-title: "ISIPs"
-author: "Loay Jabre"
-date: "July 23, 2018"
-output: html_document
-editor_options: 
-  chunk_output_type: console
----
 
-
-Load packages and functions. Some packages need to be loaded in this order, or they will clash. 
+Load packages and functions. Some packages need to be loaded in this order, or they will clash with other packages. So, keep this order.  
 ```{r message=FALSE, warning=FALSE, include=FALSE, results='hide'}
+setwd("C:/Users/Loay Jabre/Desktop/PhD/Data/FragTranscriptome/Transcriptome")
+
 library(ggplot2)
 library(plyr)
 library(dplyr)
@@ -26,322 +19,455 @@ library(ggrepel)
 library(gridExtra)
 library(htmlwidgets)
 library(VennDiagram)
+library(forcats)
 library(caroline)
 library(edgeR)
-library(manta)
-
+#library(manta)
+library(seqinr)
 source("fragtranscript_functions.R")
 #library(scatterplot3d)
 #library(rgl)
 ```
  
-Upload ORF and MCL cluster files, and extract only Fragilariopsis and Pseudo-nitzchia data.  
-```{r message=FALSE, warning=FALSE, include=FALSE}
-allMCL <- read.csv("allMCL.csv", header = TRUE, sep = "," )
-allMCL$name <- paste (allMCL$cluster, allMCL$ann_desc, allMCL$Taxa.group)
-FragMCL <- dplyr::filter (allMCL, grepl('Fragilariopsis', Taxa.group))
-PseudoMCL <- dplyr::filter (allMCL, grepl('Pseudo-nit', Taxa.group))
-alldiatomsMCL <- dplyr::filter (allMCL, grepl('Pseudo-nit|Fragilariopsis|Diatom', Taxa.group))
 
-all <- read.csv("allORF.csv", header = TRUE, sep = "," )
-all$name <- paste(all$orf_id, all$cluster, all$kegg_desc, all$KO_desc, all$KO_pathway, all$KOG_desc, all$KOG_class, all$best_hit_annotation, all$PFams_desc, all$TIGRFams_desc)
-all <- dplyr::filter (all, !grepl('^$', grpnorm_taxgrp))
-alldiatomsORF <- dplyr::filter (all, grepl('Pseudo-nit|Fragilariopsis|Diatom',grpnorm_taxgrp))
-
-PseudoORF <- dplyr::filter (all, grepl('Pseudo-nitzschi', grpnorm_taxgrp))
-PseudoORF <- dplyr::filter (PseudoORF, grepl('Eukar', domain))
-FragORF <- dplyr::filter (all, grepl('Fragilariopsis', grpnorm_taxgrp))
-FragORF <- dplyr::filter (FragORF, grepl('Eukar', domain))
-
-allnew <- read.csv("tfg_de_annotation_allTFG.grpnorm_mmetsp_fc_pn_reclassified.csv")
-```
-
-
-Look at overall general trends in the data. 
-```{r}
-
-
-volcanoplotMCL(FragMCL,"X12_vs_16.log2fc", "X12_vs_16.fdr", "TFG_t5_1A", "TFG_t5_1B", "TFG_t5_1C", "TFG_t5_7A", "TFG_t5_7B", "TFG_t5_7C", "Temp Test: 0C_VS_6C" )
-
-
-  volcano <- FragMCL[c(1,76, 58, 59, 28:30, 40:42)]
-  names(volcano) <- c("taxon", "gene", "Fold", "FDR", "a", "b", "c", "d", "e", "f")
-  volcano ["group"] <- "no-fold-change"
-  #volcano$Fe <- volcano$Fe+2  
- # volcano$noFe <- volcano$noFe+2
-  
-  volcano['size'] <- log(rowMeans( volcano[, c(5:10)] )+1)
-  #volcano['size'] <- ((volcano$Fe)+(volcano$noFe))/2
-  #volcano['size'] <- (log2(volcano$Fe))+(log2(volcano$noFe))
-  #volcano['size'] <- (log2(((volcano$Fe)+(volcano$noFe))/2))
-  #volcano['size'] <- (log2((volcano$Fe)+(volcano$noFe)))
-
-  volcano [which(volcano['FDR'] < 0.05 & abs(volcano['Fold']) < 2), "group"]<- "nofoldchange_significant" 
-  
-  volcano [which(volcano ['FDR'] > 0.05 & abs(volcano['Fold'])> 2), "group"] <- "fold-change_notsignificant"
-  
-  volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 2), "group"] <- "fold-change_significant"
-
-  ggplot (data = volcano, aes(x= Fold, y=-log10(FDR), color= group)) +
-    geom_point (alpha=0.7,size =  volcano$size, shape = 19 )+
-    geom_hline (yintercept = 1.301, col = "blue", lty = 2, lwd=0.5 )+
-    geom_vline (xintercept = c(-2,2), col = "blue", lty = 2, lwd=0.5 )+
-    xlab("Log2 Fold Change")+ ylab("-Log10 FDR")+
-    ggtitle('graphtitle')+
-    theme_bw()+
-    theme(plot.title = element_text(hjust = 0.5))
-  
-
-
-
-  
-  
-  
-  
-  x <- list (title ="Log2 Fold Change")
-  y <- list (title = "-Log10 FDR")
-  plot_ly(data = volcano, x = volcano$Fold, y = -log10(volcano$FDR), text = volcano$gene, mode = "markers", color = volcano$group, size = ~size ) %>% 
-    layout (xaxis = x, yaxis = y)
-  
-volcanoplotMCLinteractive(FragMCL, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Temp Test: 0C_VS_3C")
-volcanoplot(all, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")
-volcanoplot(all, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
-volcanoplot(all, "X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
-volcanoplot(all, "X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
-volcanoplote(all, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
-volcanoplot(all, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
-volcanoplote(all, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
-```
-
-
-Manta plots
-```{r}
-mantadata <- allMCL [,c(2,1,28,29,30,43,44,45)]
-mantadata <- dplyr::filter (mantadata, grepl('Pseudo-nitzschia|Diatom|Fragilariopsis', Taxa.group))
-mantadata$cluster <- make.unique(as.character(mantadata$cluster), sep ="_")
-mantadata <- mantadata [,-c(2)]
-  
-    colname <- "mean"
-  i=0
-  while (i < 2){
-    colname <- paste(colname, i)
-    col1 = 2+(i*3)
-    col2 = 4+(i*3)
-   mantadata[[colname]] <- rowMeans( mantadata[, c(col1:col2)] )
-    i <- i+1
-  }
-  
-  
-mantadata <- mantadata [,-c(2:7)]
-
-
-mantadata <-data.frame(mantadata[,-1], row.names = mantadata [,1])
-names(mantadata)<- c('0C_0Fe', '6C_+Fe')
-
-
-
-
-mantadata.annot <- allMCL [,c(2,6, 4,5,1)]
-mantadata.annot <- dplyr::filter (mantadata.annot, grepl('Pseudo-nitzschia|Diatom|Fragilariopsis', Taxa.group))
-mantadata.annot$cluster <- make.unique(as.character(mantadata.annot$cluster), sep ="_")
-
-mantadata.annot %>% mutate_if(is.factor, as.character) -> mantadata.annot
-
-#mantadata.annot$ann_desc[mantadata.annot$ann_desc==""] <- "NA"
-#mantadata.annot$ann_type[mantadata.annot$ann_type==""] <- "NA"
-#mantadata.annot$ann_id[mantadata.annot$ann_id==""] <- "NA"
-
-
-
-obj1 <- counts2manta(mantadata, annotation = mantadata.annot, a.merge.clmn = 'cluster', agg.clmn = 'ann_desc', meta.clmns = c('Taxa.group','ann_type'), gene.clmns = c('ann_desc', 'ann_type', 'ann_id'))
-
-
-#plot(obj1, main='Diatom Gene Expression\n at Ocean Station Papa', meta.lev='Taxa.group', lgd.pos='bottomright')
-
-#plot(obj1, main='+/-FE', meta.lev='Taxa.group', lgd.pos='bottomright')
-
-
-manta.ra(obj1, uniques=0, meta.level = 'Taxa.group', main ="-Fe0C vs +Fe6C" )
-
-
-caroline::hyperplot(obj1,annout = mantadata.annot, browse=TRUE, cex = 1, w = 72 * 8, h = 72 * 6 , main=main.hov)
-
-
-#plot(obj1, uniques=1,  meta.level = 'Taxa.group', main ="-Fe0C vs +Fe6C")
-
-
-volcanoplotMCL(DiatomMCL, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe3C")
-
-#obj <- counts2manta(cts, annotation=cts.annot,
-#+ a.merge.clmn='query_seq', agg.clmn='what_def', meta.clmns=c('family','genus_sp'),
-#+ gene.clmns=c('what_def','kid','pathway'))
-
-
-
-
-
-```
  
+Upload ORF and MCL cluster data
+```{r message=FALSE, warning=FALSE, include=FALSE}
+#load the ORF dataset with the D.E analyses
+all_ORF <- read.csv("tfg_de_annotation_allTFG.grpnorm_mmetsp_fc_pn_reclassified.csv", header = TRUE, sep = "," )
+colnames(all_ORF)[91] <- "Taxa.group"
+#create a 'name' column that includes all the annotations from the different libraries
+all_ORF$name <- paste(all_ORF$orf_id, all_ORF$cluster, all_ORF$kegg_desc, all_ORF$KO_desc, all_ORF$KO_pathway, all_ORF$KOG_desc, all_ORF$KOG_class, all_ORF$best_hit_annotation, all_ORF$PFams_desc, all_ORF$TIGRFams_desc)
+
+#subset the all_ORF dataset into a D.F containing only the columns I need 
+all_ORF_sub <- all_ORF [, c(47,48, 91, 178, 111:128, 2:46)]
+all_ORF_sub <- all_ORF_sub [, -c(23, 26, 29, 32, 35, 38, 41, 44, 47, 50, 53, 56, 59, 62, 65)]
+all_ORF_sub <- all_ORF_sub[,c(1, 3:52, 2)]
+
+#rename the different treatment columns so headings make more sense
+#names(all_ORF_sub)[4:21] <- c("noFe_05 _A","noFe_05_B", "noFe_05_C","Fe_05_A","Fe_05_B", "Fe_05_C", "noFe_3_A","noFe_3_B", "noFe_3_C","Fe_3_A","Fe_3_B", "Fe_3_C", "noFe_6_A","noFe_6_B", "noFe_6_C","Fe_6_A","Fe_6_B", "Fe_6_C")
+
+#subset to have the data only for Frag and pseudo-nitzs. 
+frag_ORF <- dplyr::filter (all_ORF_sub, grepl('Fragilariopsis', Taxa.group))
+pseudo_ORF <- dplyr::filter (all_ORF_sub, grepl('Pseudo-nitzschi', Taxa.group))
+pseudo_frag_ORF <- dplyr::filter (all_ORF_sub, grepl('Pseudo-nit|Fragilariopsis',Taxa.group))
+#all_diatoms_ORF <- dplyr::filter (all_ORF_sub, grepl('Pseudo-nit|Fragilariopsis|Diatom',Taxa.group))
+
+
+#do the same for the MCL dataset
+all_MCL <- read.csv("MCL_tfg_de_annotation_allTFG.grpnorm_mmetsp_fc_pn_reclassified.csv", header = TRUE, sep = "," )
+colnames(all_MCL)[47] <- "Taxa.group"
+all_MCL$name <- paste (all_MCL$cluster, all_MCL$ann_desc, all_MCL$Taxa.group)
+all_MCL_sub <- all_MCL [,c(48,47,148, 74:91, 2:46 )]
+all_MCL_sub <- all_MCL_sub [, -c(22, 25, 28, 31, 34, 37, 40, 43, 46,49, 52, 55, 58, 61, 64)]
+frag_MCL <- dplyr::filter (all_MCL_sub, grepl('Fragilariopsis', Taxa.group))
+pseudo_MCL <- dplyr::filter (all_MCL_sub, grepl('Pseudo-nit', Taxa.group))
+pseudo_frag_MCL <- dplyr::filter (all_MCL_sub, grepl('Pseudo-nit|Fragilariopsis', Taxa.group))
+
+#all_diatoms_MCL <- dplyr::filter (all_MCL_sub, grepl('Pseudo-nit|Fragilariopsis|Diatom', Taxa.group))
+
+#load fasta sequences in order to be able to extract the sequences I want for trees later. 
+
+#fasta <- read.fasta("NewTextDocument.txt", seqtype  = "AA")
+
+#FASTA<- data.frame(Fragments=names(fasta), Seqs=unlist(getSequence(fasta, as.string=T)))
+
+#this is to delete rows with nothing in them if needed
+#all_ORF <- dplyr::filter (all_ORF, !grepl('^$', grpnorm_taxgrp))
+```
+
+
+Look at overall general trends in the ORF data. 
+Important note: Let's say we're looking at Fe_vs_noFe, if the fold change is positive, it means that there was more of that transcript under Fe than noFe. If the fold change is negative, it means there was more of the ORF in the noFe. From Scott: "For that scenario, it means that there was upregulation of ORF x under high iron compared to low iron.
+In general, I've kept the notation as X_vx_Y meaning X - Y (ORFs). If X has higher expression than Y, DE = 1 and FC is positive."
+
 Number of DE transcrips  
 ```{r}
-
-sub_allnew <- allnew [, c(8:52, 114,115:131, 2, 96, 97, 6:7, 3:5)]
-
-
-sum(allnew$temp_6vstemp_05 !=0)
-
-sum(allnew$X12_vs_16.fdr <0.05)
-
-sum(all$X12_vs_14.fdr <0.001)
-sum(all$X12_vs_16.fdr <0.001)
-
-sum(all$X12_vs_13.fdr <0.001)
-sum(all$X14_vs_15.fdr <0.001)
-sum(all$X16_vs_17.fdr <0.001)
-
-
-all$zerocolumn <- all$TFG_t5_1A+all$TFG_t5_1B+all$TFG_t5_1C
-sum(all$zerocolumn ==0)
-
-
-
-
-newORF <- dplyr::filter(newORF, grepl('Pseudo-nit|Fragilariopsis|Diatom',grpnorm_taxgrp))
-
-newORF <- newORF [, -c(1,2,29:34)]
-
-newORF[,8:25] <- newORF$norm_factors_group*newORF[,8:25]
-
-newanalysis <- cbind(allnew, newORF)
-names(newanalysis)[1] <- 'Jjdjd'
-newanalysis <- newanalysis [, c(1,115,2:114, 116:141 )]
-newanalysis[,66:83]<- newanalysis$norm_factors_group*newanalysis[,66:83]
-newdata <- newanalysis [, -c(1,116:141, 109, 46:64 )]
-newdata <- newdata [, c(88, 46:87, 89:94)]
-newdata1 <- newdata [, c(1, 21, 39, 43, 45, 23, 46, 27, 47, 25, 48, 29, 49)]
-
+#make pie chart showing percentage of reads assigned to each taxon
+#This however does not mean there is more Frag in the water, it just means more reads were assigned to frag. 
+a<- sum(all_ORF$Taxa.group == "Fragilariopsis")
+b <- sum(all_ORF$Taxa.group == "Pseudo-nitzschia")
+c <- sum(all_ORF$Taxa.group == "Diatom")
+#slices <- c(64487,28650, 82719)
+slices <- c(a,b,c)
+lbls <- c("Fragilariopsis", "Pseudo-nitzschia", "Other Diatoms")
+pct <- round(slices/sum(slices)*100)
+lbls <- paste(lbls, pct) # add percents to labels 
+lbls <- paste(lbls,"%",sep="") # ad % to labels 
+pie(slices,labels = lbls, col=gray.colors(length(lbls)),
+   main="Percentage of ORFs assigned to diatom taxa")
+##........................##
 ```
 
- RA plot
+
+Ven diagram to look at numbers of DE transcripts in diatoms
 ```{r}
-RAp <- read.csv("RA.csv")
-raPlot(mantadata$`0C_0Fe`, mantadata$`6C_+Fe`, uniques = 0)
+
+#functions from the venndiagram package to make diagrams
+## note: this only looks at the clusters that are found across all three groups. i.e. if cluster x is only found in frag and pseudonitzchia, it is not plotted here.
 
 
+Y <- matrix(rnorm(100*6),100,6)
+Y[1:10,3:4] <- Y[1:10,3:4]+3
+Y[1:20,5:6] <- Y[1:20,5:6]+3
+design <- cbind(1,c(0,0,1,1,0,0),c(0,0,0,0,1,1))
+fit <- eBayes(lmFit(Y,design))
+results <- decideTests(fit)
+a <- vennCounts(results)
+print(a)
+mfrow.old <- par()$mfrow
+par(mfrow=c(1,2))
+vennDiagram(a)
+vennDiagram(results, 
+    include=c("up", "down"),
+    counts.col=c("red", "blue"),
+    circle.col = c("red", "blue", "green3"))
+par(mfrow=mfrow.old)
 
 
-RA <- raPlot(RAp$noFe, RAp$Fe, uniques = TRUE, jitter = 0.3)
-cond.unique <- apply(cbind(RAp$noFe, RAp$Fe), 1, function(d) any(d==0))
-points(RA$A,RA$R, col=c('black','orange')[cond.unique+1])
+#Iron effect
+ven_alldiatoms <-all_MCL [,c(47,48, 141, 142)]
+ven_alldiatoms <- dplyr::filter (ven_alldiatoms, grepl('Pseudo-nit|Fragilariopsis',Taxa.group))
 
-RA <- raPlot(FragMCL$TFG_t5_1B, FragMCL$TFG_t5_7C, pch = '', uniques = FALSE)
-cond.unique <- apply(cbind(FragMCL$TFG_t5_1B,FragMCL$TFG_t5_7C), 1, function(d) any(d==0))
-points(RA$A,RA$R, col=c('black','orange')[cond.unique+1])
+ven_alldiatoms$DE <- 0
 
-RA <- raPlot(a, b, pch='')
-cond.unique <- apply(cbind(a,b), 1, function(d) any(d==0))
-points(RA$A,RA$R, col=c('black','orange')[cond.unique+1])
+ven_alldiatoms [which(ven_alldiatoms['fe_neg_de'] == -1), "DE"]<- -1
+ven_alldiatoms [which(ven_alldiatoms['fe_pos_de'] == 1), "DE"]<- 1
+ven_alldiatoms <- ven_alldiatoms [,c(1,2,5)]
+ven_alldiatoms_sub <- dcast(ven_alldiatoms, cluster ~ Taxa.group, value.var = "DE")
+ven_alldiatoms_sub <- data.frame(ven_alldiatoms_sub[,-1], row.names = ven_alldiatoms_sub [,1])
+ven_alldiatoms_sub [is.na(ven_alldiatoms_sub)] <- 0
+
+#png("venndiagram_alldiatoms_clusters_iron.png", width=23*0.75, height=23*0.75, units="cm", res=900)
+
+#countFe <- vennCounts(ven_alldiatoms_sub)
+vennDiagram(ven_alldiatoms_sub, 
+            include = c ("up", "down"),
+            names = c( "Fragilariopsis sp.", "Pseudo-nitzschia sp."),
+            cex = 1, 
+            counts.col=c("red", "blue"),
+           main = "Iron")
+          # main.cex = 2)
+           #circle.col=c("black", "red", "blue"))
+
+#dev.off()
 
 
-            
-#use EdgeR to identify outliers 
+......................
+#Temperature effect
+ven_alldiatoms <-all_MCL [,c(47,48, 143, 144)]
+ven_alldiatoms <- dplyr::filter (ven_alldiatoms, grepl('Pseudo-nit|Fragilariopsis',Taxa.group))
+
+ven_alldiatoms$DE <- 0
+
+ven_alldiatoms [which(ven_alldiatoms['temp_neg_de'] == -1), "DE"]<- -1
+ven_alldiatoms [which(ven_alldiatoms['temp_pos_de'] == 1), "DE"]<- 1
+ven_alldiatoms <- ven_alldiatoms [,c(1,2,5)]
+ven_alldiatoms_sub <- dcast(ven_alldiatoms, cluster ~ Taxa.group, value.var = "DE")
+ven_alldiatoms_sub <- data.frame(ven_alldiatoms_sub[,-1], row.names = ven_alldiatoms_sub [,1])
+ven_alldiatoms_sub [is.na(ven_alldiatoms_sub)] <- 0
+
+#png("venndiagram_alldiatoms_clusters_temperature.png", width=23*0.75, height=23*0.75, units="cm", res=900)
+
+countFe <- vennCounts(ven_alldiatoms_sub)
+vennDiagram(ven_alldiatoms_sub, 
+            include = c ("up", "down"),
+            names = c( "Fragilariopsis sp.", "Pseudo-nitzschia sp."),
+            cex = 1, 
+            counts.col=c("red", "blue"),
+           main = "Temp")
+           #circle.col=c("black", "red", "blue"))
+
+#dev.off()
+
+.................................
+#IronxTemperature effect
+ven_alldiatoms <-all_MCL [,c(47,48, 145, 146)]
+ven_alldiatoms <- dplyr::filter (ven_alldiatoms, grepl('Pseudo-nit|Fragilariopsis',Taxa.group))
+
+ven_alldiatoms$DE <- 0
+
+ven_alldiatoms [which(ven_alldiatoms['tempfe_neg_de'] == -1), "DE"]<- -1
+ven_alldiatoms [which(ven_alldiatoms['tempfe_pos_de'] == 1), "DE"]<- 1
+ven_alldiatoms <- ven_alldiatoms [,c(1,2,5)]
+ven_alldiatoms_sub <- dcast(ven_alldiatoms, cluster ~ Taxa.group, value.var = "DE")
+ven_alldiatoms_sub <- data.frame(ven_alldiatoms_sub[,-1], row.names = ven_alldiatoms_sub [,1])
+ven_alldiatoms_sub [is.na(ven_alldiatoms_sub)] <- 0
+
+#png("venndiagram_alldiatoms_clusters_tempXiron.png", width=23*0.75, height=23*0.75, units="cm", res=900)
+
+countFe <- vennCounts(ven_alldiatoms_sub)
+vennDiagram(ven_alldiatoms_sub, 
+            include = c ("up", "down"),
+            names = c( "Fragilariopsis sp.", "Pseudo-nitzschia sp."),
+            cex = 1, 
+            counts.col=c("red", "blue"),
+           main = "Iron temp")
+           #circle.col=c("black", "red", "blue"))
+
+#dev.off()
 
 ```
+
+
+Sliding plot for various groups 
+```{r}
+
+# DE plot with positive and negative differences shown.
+# blank plot just used for the axis.
+blank_p <- all_ORF %>% 
+  group_by(Taxa.group) %>% 
+  summarise(fe_grp = sum(abs_fe)) %>%  
+  ggplot(aes(x = fe_grp, 
+             y = fct_reorder(Taxa.group, fe_grp))) + 
+  # geom_point() +
+  theme_bw() +
+  xlab('') + 
+  theme(axis.text.x = element_text(colour = 'white'), 
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(), 
+        axis.ticks = element_blank()) +
+  ylab(''); blank_p
+
+pn_fe <- all_ORF %>% 
+  group_by(Taxa.group) %>% 
+  summarise(fe_grp = sum(abs_fe),
+            fe_grp_neg = sum(fe_neg_de),
+            fe_grp_pos = sum(fe_pos_de)) %>%  
+  ggplot(aes(x = fe_grp_neg, y = fct_reorder(Taxa.group, fe_grp))) + 
+  geom_point(size = 3, alpha = 0.5, colour = 'blue') +
+  geom_point(aes(x = fe_grp_pos, y = fct_reorder(Taxa.group, fe_grp)),
+             size = 3, alpha = 0.5, colour = 'red') +
+  geom_segment(aes(x = fe_grp_neg, xend = 0, 
+                   y = fct_reorder(Taxa.group, fe_grp), 
+                   yend = fct_reorder(Taxa.group, fe_grp)), colour = 'blue', alpha = 0.2, lwd = 2) +
+  geom_segment(aes(x = fe_grp_pos, xend = 0, 
+                   y = fct_reorder(Taxa.group, fe_grp), 
+                   yend = fct_reorder(Taxa.group, fe_grp)), colour = 'red', alpha = 0.2, lwd = 2) +
+  theme_bw() +
+  xlab('Iron-Related DE') + 
+  ylab('') +
+  theme(axis.text.y = element_blank());pn_fe
+
+
+pn_temp <- all_ORF %>% 
+  group_by(Taxa.group) %>% 
+  summarise(fe_grp = sum(abs_fe),
+            temp_grp_neg = sum(temp_neg_de),
+            temp_grp_pos = sum(temp_pos_de)) %>%  
+  ggplot(aes(x = temp_grp_neg, y = fct_reorder(Taxa.group, fe_grp))) + 
+  geom_point(size = 3, alpha = 0.5, colour = 'blue') +
+  geom_point(aes(x = temp_grp_pos, y = fct_reorder(Taxa.group, fe_grp)),
+             size = 3, alpha = 0.5, colour = 'red') +
+  geom_segment(aes(x = temp_grp_neg, xend = 0, 
+                   y = fct_reorder(Taxa.group, fe_grp), 
+                   yend = fct_reorder(Taxa.group, fe_grp)), colour = 'blue', alpha = 0.2, lwd = 2) +
+  geom_segment(aes(x = temp_grp_pos, xend = 0, 
+                   y = fct_reorder(Taxa.group, fe_grp), 
+                   yend = fct_reorder(Taxa.group, fe_grp)), colour = 'red', alpha = 0.2, lwd = 2) +
+  theme_bw() +
+  xlab('Temperature-Related DE') + 
+  ylab('') +
+  theme(axis.text.y = element_blank());pn_temp
+
+pn_tempfe <- all_ORF %>% 
+  group_by(Taxa.group) %>% 
+  summarise(fe_grp = sum(abs_fe),
+            fetemp_grp_neg = sum(tempfe_neg_de),
+            fetemp_grp_pos = sum(tempfe_pos_de)) %>%  
+  ggplot(aes(x = fetemp_grp_neg, y = fct_reorder(Taxa.group, fe_grp))) + 
+  geom_point(size = 3, alpha = 0.5, colour = 'blue') +
+  geom_point(aes(x = fetemp_grp_pos, y = fct_reorder(Taxa.group, fe_grp)),
+             size = 3, alpha = 0.5, colour = 'red') +
+  geom_segment(aes(x = fetemp_grp_neg, xend = 0, 
+                   y = fct_reorder(Taxa.group, fe_grp), 
+                   yend = fct_reorder(Taxa.group, fe_grp)), colour = 'blue', alpha = 0.2, lwd = 2) +
+  geom_segment(aes(x = fetemp_grp_pos, xend = 0, 
+                   y = fct_reorder(Taxa.group, fe_grp), 
+                   yend = fct_reorder(Taxa.group, fe_grp)), colour = 'red', alpha = 0.2, lwd = 2) +
+  theme_bw() +
+  xlab('Iron-Temperature-Related DE') + 
+  ylab('') +
+  theme(axis.text.y = element_blank());pn_tempfe
+
+grid.arrange(blank_p, pn_fe, pn_temp, pn_tempfe, nrow = 1)
+
+```
+
+
+
+Rhodopsin plots
+```{r}
+#png("venndiagram_alldiatoms_clusters_iron.png", width=23*0.75, height=23*0.75, units="cm", res=900)
+#dev.off()
+rhodopsin_ORF <- dplyr::filter (pseudo_frag_ORF, grepl('clust_231 |rhodopsin|Rhodopsin', name))
+
+rhodopsin_MCL <- dplyr::filter (pseudo_frag_MCL, grepl('rhodopsin|Rhodopsin|clust_10297 |clust_129508 |clust_130846 |clust_142867 |clust_1508 |clust_1548 |clust_16487 |clust_19837 |clust_22740 |clust_231 |clust_28522 |clust_3959 |clust_4014 |clust_779029 |clust_8237 ', name))
+
+
+
+rhodopsin_ORF_clust1548 <- dplyr::filter (pseudo_frag_ORF, grepl('clust_1548 ', name))
+
+rhodopsin_ORF_clust231 <- dplyr::filter (pseudo_frag_ORF, grepl('clust_231 ', name))
+volcanoplot_interactive(frag_ORF, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_rhodopsin_ORFs_alldiatoms")
+
+
+
+volcanoplot_interactive(rhodopsin_MCL, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_rhodopsin_ORFs_alldiatoms")
+
+volcanoplot_interactive(rhodopsin_MCL, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "temp_6C_vs_0C_rhodopsin_ORFs_alldiatoms")
+
+
+volcanoplot(rhodopsin_MCL, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_rhodopsin_ORFs_alldiatoms")
+
+volcanoplot(rhodopsin_MCL, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "temp_6C_vs_0C_rhodopsin_ MCL_alldiatoms")
+
+
+clustername_vs_foldchange( rhodopsin_MCL, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_rhodopsin_clusters_alldiatoms")
+
+clustername_vs_foldchange( rhodopsin_MCL, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "temp_6C_vs_0C_rhodopsin_MCL_alldiatoms")
+
+clustername_vs_foldchange( rhodopsin_MCL, "int_fe_temp_3C_vs_0C_foldchange", "int_fe_temp_3C_vs_0C_pvalue", "temp_6C_vs_0C_rhodopsin_MCL_alldiatoms")
+
+
+
+
+
+heatmap(rhodopsin_MCL, 'clust')
+heatmap_mean(rhodopsin_MCL, 'clust')
+
+heatmap(rhodopsin_MCL, "clust_231|clust_1548|clust_28522 |clust_8237 |clust_4014 |clust_3959 |clust_10297 |clust_19837 ")
+heatmap_mean(rhodopsin_MCL, "clust_231|clust_1548|clust_28522 |clust_8237 |clust_4014 |clust_3959 |clust_10297 |clust_19837 " )
+
+heatmap_unclustered_mean(rhodopsin_MCL, "clust_231|clust_1548 |clust_28522")
+heatmap_unclustered(rhodopsin_MCL, "clust_231|clust_1548 |clust_28522")
+
+heatmap(rhodopsin_MCL, "clust_231|clust_1548 |clust_28522")
+heatmap_unclustered(rhodopsin_MCL, "clust_231|clust_1548 |clust_28522")
+
+heatmap(all_diatoms_MCL, "clust_231 |clust_1548 ")
+heatmap_unclustered_mean(rhodopsin_MCL, "clust_231|clust_1548 ")
+
+MCLclusterrawplot (frag_MCL, '^clust_231$', "Rhodopsin - cluster 231 Frag")
+
+
+heatmap(pseudo_frag_MCL, "clust_1548 |clust_231 ")
+
+
+
+MCLclusterrawplot (frag_MCL, '^clust_231$', "Rhodopsin - cluster 1548 Frag")
+MCLclusterrawplot (frag_MCL, '^clust_10297$', "Rhodopsin - cluster 10297 Frag")
+MCLclusterrawplot (frag_MCL, '^clust_$', "Rhodopsin - cluster 231 Frag")
  
 
-#Rhodopsin plots
-```{r}
-ISIP <- dplyr::filter (FragORF, grepl('rhodopsin|Rhodopsin', name))
-volcanoplotinteractive(ISIP, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")
-volcanoplotinteractive(ISIP, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")
-volcanoplotinteractive(ISIP, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
-volcanoplotinteractive(ISIP, "X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
-volcanoplotinteractive(ISIP, "X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
-volcanoplotinteractive(ISIP, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
-  volcanoplotinteractive(ISIP, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
-#interesting synergy test. 
-volcanoplotinteractive(ISIP, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
+rhodopsin_interest <- dplyr::filter (all_MCL_sub, grepl('Pseudo-nit|Fragilariopsis|Rhodobacterales|Dinophy|Alteromona|Cyanobacter', Taxa.group))
+heatmap(rhodopsin_interest, 'clust_231 ')
+heatmap_unclustered(rhodopsin_interest, 'clust_231 ')
 
 
-heatmap_unclustered(group, ISIP, "clust_231 ")
-heatmap(group, ISIP, "rhodopsin|Rhodopsin")
-
- MCLclusterrawplot (FragMCL, '^clust_231$', "Rhodopsin - cluster 231 Frag")
-R1p <- MCLclusterrawplot (PseudoMCL, '^clust_231$', "Rhodopsin - cluster 231 Pseudo")
+R1p <- MCLclusterrawplot (Frag_MCL, '^clust_231$', "Rhodopsin - cluster 231 Pseudo")
 R2f <- MCLclusterrawplot (FragMCL, '^clust_1548$', "Rhodopsin - cluster 1548 Frag")
 R2p <- MCLclusterrawplot (PseudoMCL, '^clust_1548$', "Rhodopsin - cluster 1548 Pseudo")
 R3f <- MCLclusterrawplot (FragMCL, '^clust_10297$', "Rhodopsin - cluster 10297 Frag")
 R3p <- MCLclusterrawplot (PseudoMCL, '^clust_10297$', "Rhodopsin - cluster 10297 Pseudo")
 R4f <- MCLclusterrawplot (FragMCL, '^clust_19837$', "Rhodopsin - cluster 19837 Frag")
-R4p <- MCLclusterrawplot (PseudoMCL, '^clust_19837$', "Rhodopsin - cluster 19837 Pseudo")
+R4p <- MCLclusterrawplot (PseudoMCL, '^clust_19837$', "Rhodopsin - cluster 19837 Pseudo")         
 
-MCLclusterrawplot (FragMCL, '^clust_231$', "Rhodopsin - cluster 231 Frag")
+Lclusterrawplot (frag_MCL, '^clust_1548$', "Rhodopsin - cluster 231 Frag")
 
 grid.arrange(R1f, R1p, R2f, R2p, R3f, R3p, nrow=3, ncol=2)
+```
 
-x<- ORFplots(FragORF, "^clust_231$", 'titile')
 
+OEC/Mn cluster and rhodopsin
+```{r}
+
+OEC_ORF <- dplyr::filter (pseudo_frag_ORF, grepl('evolving|OEE', name))
+
+OEC_MCL <- dplyr::filter (pseudo_frag_MCL, grepl('clust_1906 ', name))
+
+OEC_MCL <- dplyr::filter (pseudo_frag_MCL, grepl('cluster', name))
+
+heatmap_unclustered_mean(OEC_MCL, 'clust')
+
+
+volcanoplot_interactive(OEC_ORF, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_rhodopsin_ORFs_alldiatoms")
+
+volcanoplot_interactive(OEC_ORF, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "temp_6C_vs_0C_rhodopsin_ORFs_alldiatoms")
+
+volcanoplot_interactive(OEC_ORF, "int_fe_temp_6C_vs_0C_foldchange", "int_fe_temp_6C_vs_0C_pvalue", "temp_6C_vs_0C_rhodopsin_ORFs_alldiatoms")
+
+
+
+
+clustername_vs_foldchange(OEC_MCL, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_rhodopsin_clusters_alldiatoms")
+
+
+MCLclusterrawplot(OEC_MCL, "clust_5856 ", "jdjd")
+
+
+heatmap_unclustered(all_MCL_sub, 'clust_1906 ')
+
+heatmap(OEC_MCL, 'clust')
+
+heatmap_mean(rhodopsin_MCL, 'clust')
+
+
+
+
+```
+
+
+rhodopsin/Mn cluster interaction, plastoquinone
+```{r}
+
+
+PQ <- dplyr::filter (all_diatoms_MCL, grepl('clust_231 |clust_1548 |clust_1906 |evolv', name))
+
+clustername_vs_foldchange(PQ,"Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_rhodopsin_ORFs_alldiatoms" )
 ggplotly(x)
 
-ORFplots(FragORF, "^clust_19837$", 'titile')
-
-ISIP <- dplyr::filter (FragORF, grepl('^clust_231$', cluster))
-
-```
+clustername_vs_foldchange(PQ, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "temp_6C_vs_0C_rhodopsin_ MCL_alldiatoms")
 
 
-
-#ISIP plots 
-```{r}
-#Volcano plots for the different treatments for Frag. 
-
-ISIP <- dplyr::filter (PseudoORF, grepl('ISIP|isip', name))
-volcanoplotinteractive(ISIP, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")
-volcanoplotinteractive(ISIP, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")
-volcanoplotinteractive(ISIP, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
-volcanoplotinteractive(ISIP, "X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
-volcanoplotinteractive(ISIP, "X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
-volcanoplotinteractive(ISIP, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
-volcanoplotinteractive(ISIP, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
-volcanoplotinteractive(ISIP, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
-
-ISIP <- dplyr::filter (PseudoORF, grepl('ISIP|isip', name))
-volcanoplotinteractive(ISIP, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")    
-volcanoplotinteractive(ISIP, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")     
-volcanoplotinteractive(ISIP, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
-volcanoplotinteractive(ISIP, "X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
-volcanoplotinteractive(ISIP, "X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
-volcanoplotinteractive(ISIP, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
-volcanoplotinteractive(ISIP, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
-volcanoplotinteractive(ISIP, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
+clustername_vs_foldchange(PQ, "int_fe_temp_6C_vs_0C_foldchange", "int_fe_temp_6C_vs_0C_pvalue", "temp_6C_vs_0C_rhodopsin_MCL_alldiatoms")
 
 
-heatmap(group, FragORF, "ISIP1")
-heatmap(group, FragORF, "ISIP2")
-heatmap(group, FragORF, "ISIP3")
 
-heatmap(group, PseudoORF, "ISIP1")
-heatmap(group, PseudoORF, "ISIP2")
-heatmap(group, PseudoORF, "ISIP3")
+volcanoplot_interactive(PQ, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_rhodopsin_ORFs_alldiatoms")
+
+volcanoplot_interactive(PQ, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "temp_6C_vs_0C_rhodopsin_ MCL_alldiatoms")
+
+volcanoplot(PQ, "int_fe_temp_6C_vs_0C_foldchange", "int_fe_temp_6C_vs_0C_pvalue", "temp_6C_vs_0C_rhodopsin_MCL_alldiatoms")
 
 
-I1f<- MCLclusterrawplot (FragMCL, '^clust_1814$', "ISIP1 - cluster 1814Frag")
-I1p<- MCLclusterrawplot (PseudoMCL, '^clust_1814$', "ISIP1 - cluster 1814Pseudo")
-I2f <- MCLclusterrawplot (FragMCL,'clust_9740', "ISIP2A - cluster 9740Frag")
-I2p <- MCLclusterrawplot (PseudoMCL,'clust_9740', "ISIP2A - cluster 9740Pseudo")
-I3f <- MCLclusterrawplot (FragMCL,'clust_1154', "ISIP3 - cluster 1154Frag")
-I3p <- MCLclusterrawplot (PseudoMCL,'clust_1154', "ISIP3 - cluster 1154Pseudo")
-#I4 <- MCLclusterrawplot (FragMCL,'clust_25598', "ISIP2A - cluster 25598 (not significant)")
-grid.arrange(I1f,I1p,I2f,I2p, I3f, I3p, nrow=3, ncol=2)
 
 ```
 
 
 
 
-#Nitrogen 
+ISIP plots 
 ```{r}
-NiR <- MCLclusterrawplot(FragMCL, '^clust_411$', "Nitrate reductase - cluster 411Frag")
+ISIP_cluster <- dplyr::filter (all_diatoms_MCL, grepl("ISIP|isip|clust_1814 |clust_343 |clust_9740 |clust_25598 |clust_23469 |clust_1154  ", name))
+
+ISIP_ORF <- dplyr::filter (all_diatoms_ORF, grepl('ISIP|isip', name))
+
+
+
+
+volcanoplot_interactive(ISIP_cluster, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_rhodopsin_ORFs_alldiatoms")
+
+clustername_vs_foldchange(ISIP_ORF, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_rhodopsin_ORFs_alldiatoms")
+
+volcanoplot_interactive(ISIP_cluster, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "temp_6C_vs_0C_rhodopsin_ORFs_alldiatoms")
+
+
+```
+
+Nitrogen 
+```{r}
+NiR <- MCLclusterrawplot(frag_MCL, '^clust_411$', "Nitrate reductase - cluster 411Frag")
 NiRP <- MCLclusterrawplot(PseudoMCL, '^clust_411$', "Nitrate reductase - cluster 411Pseudo")
 NitTrans <- MCLclusterrawplot(FragMCL, '^clust_991$', "Nitrate transporter portein - cluster 991Frag")
 NitTransP <- MCLclusterrawplot(PseudoMCL, '^clust_991$', "Nitrate transporter portein - cluster 991Pseudo")
@@ -388,8 +514,8 @@ NiRMCL <- dplyr::filter(FragORF, grepl ('ferritin|Ferritin', name))
 
 MCLclusterrawplot (PseudoMCL, '^clust_4956$', "Nitric Oxide Synthase -cluster 4956 Pseudo")
 
-MCLclusterrawplot (FragMCL, '^clust_4956$', "Nitric Oxide Synthase - cluster 4956 Frag")
-MCLclusterrawplot (FragMCL, '^clust_16690$', "Nitric Oxide Synthase Frag")
+MCLclusterrawplot (frag_MCL, '^clust_4956$', "Nitric Oxide Synthase - cluster 4956 Frag")
+MCLclusterrawplot (frag_MCL, '^clust_16690$', "Nitric Oxide Synthase Frag")
 
 MCLclusterrawplot (PseudoMCL, '^clust_15657$', "Nitric Oxide Synthase Frag")
 
@@ -398,13 +524,30 @@ MCLclusterrawplot (PseudoMCL, '^clust_15657$', "Nitric Oxide Synthase Frag")
 
 ```
 
-
-
-
-#Flavodoxin Frag
+Flavodoxin Frag
 ```{r}
-flavodoxin <- dplyr::filter(FragORF, grepl ('flavodoxin|Flavodoxin', name))
-flavodoxin <- dplyr::filter(FragMCL, grepl ('flavodoxin|Flavo', name))
+flavodoxin <- dplyr::filter(all_diatoms_MCL, grepl ('flavodoxin|Flavodoxin', name))
+
+flavodoxin_frag <- dplyr::filter(frag_MCL, grepl ('ferredoxin|Ferredoxin', name))
+flavodoxin_pseudo <- dplyr::filter(pseudo_MCL, grepl ('flavodoxin|Flavodoxin', name))
+
+
+
+
+
+
+
+clustername_vs_foldchange(flavodoxin, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_flavodoxin")
+
+clustername_vs_foldchange( flavodoxin, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "6C_vs_0C_flavodoxin")
+
+heatmap_unclustered( flavodoxin,"clust_")
+
+heatmap_mean( flavodoxin_pseudo,"clust_")
+
+
+
+
 
 
 
@@ -446,38 +589,6 @@ ORFplots(FragORF, "^clust_6705", "title")
 ```
 
 
-#Flavodoxin Pseudo
-```{r}
-flavodoxin <- dplyr::filter(PseudoORF, grepl ('flavodoxin|Flavodoxin', name))
-
-flavodoxinMCL <- dplyr::filter(PseudoMCL, grepl ('flavodoxin|Flavodoxin', name))
-
-volcanoplotinteractive(flavodoxin, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")
-volcanoplotinteractive(flavodoxin, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")
-volcanoplotinteractive(flavodoxin, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
-volcanoplotinteractive(flavodoxin, "X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
-volcanoplotinteractive(flavodoxin, "X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
-volcanoplotinteractive(flavodoxin, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
-volcanoplotinteractive(flavodoxin, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
-volcanoplotinteractive(flavodoxin, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C")
-
-
-MCLclusterrawplot (FragMCL, '^clust_534$', "Non-Iron responsive Flavodoxin in Fragilariopsis spp.")
-MCLclusterrawplot (FragMCL, '^clust_4660$', "Iron responsive Flavodoxin in Fragilariopsis spp.")
-MCLclusterrawplot (FragMCL, '^clust_6705$', "Iron responsive Flavodoxin in F. cylindrus")
-
-x <-ORFplots(PseudoORF, "^clust_534$", "clust_534")
-
-ggplotly(x)
-
-contigplots(PseudoORF,"contig_678095_1_656_+", "Pseudo-Flavodoxin-cluster534-contig_678095_1_656_+" )
-
-
-```
-
-
-
-
 #List of significant MCL clusters Extract only Significant genes 
 ```{r}
 volcano <- FragMCL[c("name", "X12_vs_14.log2fc", "X12_vs_14.fdr")]
@@ -506,46 +617,13 @@ volcanoplotinteractive(LHC, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 
 
 
 
-```{r}
-  
-volcanoplotinteractive(LHC, "X12_vs_14.log2fc", "X12_vs_14.fdr", "Temp Test: 0C_VS_3C")    
-volcanoplotinteractive(LHC, "X12_vs_16.log2fc", "X12_vs_16.fdr", "Temp Test: 0C_VS_6C")     
-volcanoplotinteractive(LHC, "X14_vs_16.log2fc", "X14_vs_16.fdr", "Temp Test: 3C_VS_6C")
-volcanoplotinteractive(LHC, "X12_vs_13.log2fc", "X12_vs_13.fdr", "Fe Test: 0C_VS_Fe0C")
-volcanoplotinteractive(LHC, "X14_vs_15.log2fc", "X14_vs_15.fdr", "Fe Test: 3C_VS_Fe3C")
-volcanoplotinteractive(LHC, "X16_vs_17.log2fc", "X16_vs_17.fdr", "Fe Test: 6C_VS_Fe6C")
-volcanoplotinteractive(LHC, "X12_vs_15.log2fc", "X12_vs_15.fdr", "Synergy Test: 0C_VS_Fe3C")
-volcanoplotinteractive(LHC, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe6C_Frag")
-```
-  
-  
-
-
-
-#This chunk here is for exploring new things. 
-```{r}
-explore <- dplyr::filter(FragORF, grepl ('betaine', name))
-
-
-
-
-
-MCLclusterrawplot (FragMCL, '^clust_611$', "fructose adolase")
-
-MCLclusterrawplot (FragMCL, '^clust_8542$', "fructose adolase")
-
-```
-
-
-
-
 #Light Harvesting Complexes
 ```{r}
-F1 <- MCLclusterrawplot(FragMCL,'^clust_1236$', "LHCf1 - cluster 1236Frag")
-F1P <- MCLclusterrawplot(PseudoMCL,'^clust_1236$', "LHCf1 - cluster 1236Pseudo")
+MCLclusterrawplot(frag_MCL,'^clust_1236$', "LHCf1 - cluster 1236Frag")
+F1P <- MCLclusterrawplot(pseudo_MCL,'^clust_1236$', "LHCf1 - cluster 1236Pseudo")
 
-F2 <- MCLclusterrawplot(FragMCL, '^clust_1194$', "LHCf4 - cluster 1194Frag")
-F2P <- MCLclusterrawplot(PseudoMCL, '^clust_1194$', "LHCf4 - cluster 1194Pseudo")
+F2 <- MCLclusterrawplot(frag_MCL, '^clust_1194$', "LHCf4 - cluster 1194Frag")
+F2P <- MCLclusterrawplot(pseudo_MCL, '^clust_1194$', "LHCf4 - cluster 1194Pseudo")
 
 grid.arrange(F1, F1P, F2, F2P,nrow=2, ncol=2)
 
@@ -585,17 +663,12 @@ A6 <- MCLclusterrawplot(PseudoMCL, '^clust_12773$', "Flavodoxin - cluster 12773 
 
 
 
-
-
-
 grid.arrange(A1, A2, A3, A4, A5, A6, nrow=3, ncol=2)
 
-
-
-
-LHC <- dplyr::filter (FragMCL, grepl('Flavodoxin|flavodoxin', name))
-
 ```
+
+
+
 
 
 
@@ -800,88 +873,1667 @@ grid.arrange(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o, nrow=5, ncol=3)
 
 
 
-#still need to figure this out. 
+
+Manta plots
 ```{r}
-
-#volcanoplot <- function(foldchange, FDR, graphtitle){
-  ##volcano <- ORF[c("orf_id", foldchange, FDR)]
-  #names(volcano) <- c("gene", "Fold", "FDR")
-  #volcano ["group"] <- "no-fold-change"
-
-  ### adding color: this categorizes the data based on significance
-  #significant but not large enough fold change
+mantadata <- all_MCL_sub [,c(1,2,4:9)]
+mantadata <- dplyr::filter (mantadata, grepl('Pseudo-nitzschia|Diatom|Fragilariopsis', Taxa.group))
+mantadata$cluster <- make.unique(as.character(mantadata$cluster), sep ="_")
+mantadata <- mantadata [,-c(2)]
   
-  
-volcano <- FragMCL[c("name", "X16_vs_17.log2fc" , "X16_vs_17.fdr")]
-volcano ["group"] <- "no-fold-change"
-names(volcano) <- c( "name", "Fold", "FDR", "group")
-
-volcano [which(volcano['FDR'] < 0.1 & abs(volcano['Fold']) < 2), "group"]<- "nofoldchange_significant" 
-  
-  # large enough fold change, not significant
-  volcano [which(volcano ['FDR'] > 0.1 & abs(volcano['Fold'])> 2), "group"] <- "fold-change_notsignificant"
-  
-  #Significant and fold change
-  volcano [which(volcano ['FDR'] < 0.1 & abs(volcano['Fold']) > 2), "group"] <- "fold-change_significant"
-
-  
-  
-  
-  
-  
-  
-
-```
-
-#Pie Chart plot
-```{r}
-df <- data.frame(
-  group = c("Male", "Female", "Child"),
-  value = c(25, 25, 50)
-  )
-head(df)
-
-
-
-bp<- ggplot(df, aes(x="", y=value, fill=group))+
-geom_bar(width = 1, stat = "identity")
-bp
-
-pie <- bp + coord_polar("y", start=0)
-pie
-
-
-PracticepieMCL <- dplyr::filter (allMCL, grepl('Fragilariopsis|Diatom|Pseudo-nit', Taxa.group))
-PracticepieMCL <- dplyr::filter (PracticepieMCL, grepl('clust_1', cluster))
-
-PracticepieMCL <- PracticepieMCL [, c(1,2, 28,29,30)]
-
-
- colname <- "mean"
+    colname <- "mean"
   i=0
-  while (i < 1){
+  while (i < 2){
     colname <- paste(colname, i)
     col1 = 2+(i*3)
-    #col2 = 4+(i*3)
-   PracticepieMCL[[colname]] <- rowMeans( PracticepieMCL[, c(col1:col2)] )
+    col2 = 4+(i*3)
+   mantadata[[colname]] <- rowMeans( mantadata[, c(col1:col2)] )
     i <- i+1
   }
+  
+  
+mantadata <- mantadata [,-c(2:7)]
 
 
-PracticepieMCL$mean <- rowMeans(PracticepieMCL[,c(3,4,5)]) 
+mantadata <-data.frame(mantadata[,-1], row.names = mantadata [,1])
+names(mantadata)<- c('0C_0Fe', '0C_+Fe')
 
 
-PracticepieMCL <- PracticepieMCL [, c(1,2,6)]
 
-PracticepieMCL$name <- paste (PracticepieMCL$Taxa.group,"_",PracticepieMCL$cluster)
-                              
-PracticepieMCL <- PracticepieMCL [, c(4,3)]
 
-getAnywhere('manta.ra')
+mantadata.annot <- all_MCL [,c(48,52, 50,51,47)]
+mantadata.annot <- dplyr::filter (mantadata.annot, grepl('Pseudo-nitzschia|Diatom|Fragilariopsis', Taxa.group))
+mantadata.annot$cluster <- make.unique(as.character(mantadata.annot$cluster), sep ="_")
 
-PracticepieMCL1 <- separate(PracticepieMCL, col=name, into = c("f", "jd", "sjs", "js"))
+mantadata.annot %>% mutate_if(is.factor, as.character) -> mantadata.annot
+
+#mantadata.annot$ann_desc[mantadata.annot$ann_desc==""] <- "NA"
+#mantadata.annot$ann_type[mantadata.annot$ann_type==""] <- "NA"
+#mantadata.annot$ann_id[mantadata.annot$ann_id==""] <- "NA"
+
+
+
+obj1 <- counts2manta(mantadata, annotation = mantadata.annot, a.merge.clmn = 'cluster', agg.clmn = 'ann_desc', meta.clmns = c('Taxa.group','ann_type'), gene.clmns = c('ann_desc', 'ann_type', 'ann_id'))
+
+
+#plot(obj1, main='Diatom Gene Expression\n at Ocean Station Papa', meta.lev='Taxa.group', lgd.pos='bottomright')
+
+#plot(obj1, main='+/-FE', meta.lev='Taxa.group', lgd.pos='bottomright')
+
+
+manta.ra(obj1, uniques=0, meta.level = 'Taxa.group', main ="-Fe0C vs +Fe6C" )
+
+
+caroline::hyperplot(obj1,annout = mantadata.annot, browse=TRUE, cex = 1, w = 72 * 8, h = 72 * 6 )
+
+
+#plot(obj1, uniques=1,  meta.level = 'Taxa.group', main ="-Fe0C vs +Fe6C")
+
+
+volcanoplotMCL(DiatomMCL, "X12_vs_17.log2fc", "X12_vs_17.fdr", "Synergy Test: 0C_VS_Fe3C")
+
+#obj <- counts2manta(cts, annotation=cts.annot,
+#+ a.merge.clmn='query_seq', agg.clmn='what_def', meta.clmns=c('family','genus_sp'),
+#+ gene.clmns=c('what_def','kid','pathway'))
+```
+ 
+ 
+ 
+ 
+ RA plot
+```{r}
+RAp <- read.csv("RA.csv")
+raPlot(mantadata$`0C_0Fe`, mantadata$`6C_+Fe`, uniques = 0)
+
+
+RA <- raPlot(RAp$noFe, RAp$Fe, uniques = TRUE, jitter = 0.3)
+cond.unique <- apply(cbind(RAp$noFe, RAp$Fe), 1, function(d) any(d==0))
+points(RA$A,RA$R, col=c('black','orange')[cond.unique+1])
+
+RA <- raPlot(FragMCL$TFG_t5_1B, FragMCL$TFG_t5_7C, pch = '', uniques = FALSE)
+cond.unique <- apply(cbind(FragMCL$TFG_t5_1B,FragMCL$TFG_t5_7C), 1, function(d) any(d==0))
+points(RA$A,RA$R, col=c('black','orange')[cond.unique+1])
+
+RA <- raPlot(a, b, pch='')
+cond.unique <- apply(cbind(a,b), 1, function(d) any(d==0))
+points(RA$A,RA$R, col=c('black','orange')[cond.unique+1])
+
+#use EdgeR to identify outliers 
+```
+
+
+
+```{r}
+
+rhodopsin_clust231_clust <- dplyr::filter (all_diatoms_MCL, grepl('rhodopsin|Rhodopsin|clust_10297 |clust_129508 |clust_130846 |clust_142867 |clust_1508 |clust_1548 |clust_16487 |clust_19837 |clust_22740 |clust_231 |clust_28522 |clust_3959 |clust_4014 |clust_779029 |clust_8237 ', name))
+
+
+rhodopsin_clust231_clust <- dplyr::filter (all_ORF, grepl('clust_1548 ', cluster))
+
+clustername_vs_foldchange_test <- function(dataset, foldchange, FDR, graphtitle){
+  volcano <- dataset[c("name",foldchange, FDR,"Taxa.group", "cluster" )]
+  
+  names(volcano) <- c( "gene", "Fold", "FDR", "taxa", "cluster")
+  
+  ggplot (data = volcano, aes(x= Fold, y= cluster, color = taxa, label=gene)) +
+    geom_point (alpha=0.5)+
+    scale_shape (solid=FALSE)+
+    ylab("cluster")+ 
+    xlab("log2 fold-change")+
+    scale_color_manual(values = c("black", "red", "blue"))+
+    ggtitle(graphtitle)+
+    theme_bw()+
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(axis.text.x = element_text(
+            hjust=1,
+      size = 9, 
+      face = "bold")) 
+  #geom_text(data = subset(volcano, abs(Fold) >1 & -log10(FDR) >1.3),
+  #aes(label="*"), box.padding = 0, point.padding = 0.1, color= 'black', size =5)
+ 
+}
+
+
+clustername_vs_foldchange_test( rhodopsin_clust231_clust, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_rhodopsin_ORFs_alldiatoms")
+
+clustername_vs_foldchange_test( rhodopsin_clust231_clust, "Fe_6C_vs_Fe_0C_foldchange", "Fe_6C_vs_Fe_0C_pvalue", "temp_6C_vs_3C_ORFs_alldiatoms")
+
+clustername_vs_foldchange_test( rhodopsin_clust231_clust, "int_fe_temp_6C_vs_0C_foldchange", "int_fe_temp_6C_vs_0C_pvalue", "hfRFs_alldiatoms")
+
+
+```
+
+
+
+
+cluster name vs fold change
+```{r}
+photosynthesis <- dplyr::filter (pseudo_frag_ORF, grepl('rhodopsin|Rhodopsin|P680|OEC|oec|evolving|OEE|PsbO|PsbP|PsbQ|p700|P700|flavodoxin|Flavodoxin|b6f|Rieske|petF_2|petF_1|atpA|atpB|RUBISCO|Rubisco|rubisco|plastocyanin|Plastocyanin|CP47|LHC|Lhc|clust_808 ', name))
+
+
+#png("FevsnoFe_cluster.png", width=23*0.75, height=23*0.75, units="cm", res=900)
+
+
+volcanoplot(photosynthesis,"temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "temp_6C_vs_0C_pseudo-frag_ORFs")
+#dev.off()
+
+volcanoplot(photosynthesis,"Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_pseudo-frag_ORFs")
+
+
+volcanoplot(photosynthesis,"int_fe_temp_6C_vs_0C_foldchange", "int_fe_temp_6C_vs_0C_pvalue", " tempfe_interaction_pseudo-frag_ORFs")
+```
+
+
+
+sliding plot for the different cellular functions
+```{r}
+frag_slide<- merge(frag_ORF, all_ORF, by = 'orf_id')
+frag_slide<- frag_slide [c(222:229)]
+colnames (frag_slide) <- c("fe_neg", "fe_pos", "temp_neg", "temp_pos", "tempfe_neg", "tempfe_pos", "abs_fe", "name")
+
+pseudo_slide <- merge(pseudo_ORF, all_ORF, by = 'orf_id')
+pseudo_slide<- pseudo_slide [c(222:229)]
+colnames (pseudo_slide) <- c("fe_neg", "fe_pos", "temp_neg", "temp_pos", "tempfe_neg", "tempfe_pos", "abs_fe", "name")
+
+#pick the cell compartments to plot, and give that whole compartment a name
+cellcompartment <- function (dataset){
+  
+Rhodopsin <- dplyr::filter(dataset, grepl("rhodopsin|Rhodopsin", name))
+Rhodopsin$cellcompartment <- "Rhodopsin"
+
+PSIIreactioncenter <- dplyr::filter(dataset, grepl("P680", name))
+PSIIreactioncenter$cellcompartment <- "P680"
+
+manganesecluster <- dplyr::filter(dataset, grepl("OEC|oec|evolving|OEE|PsbO|PsbP|PsbQ", name))
+manganesecluster$cellcompartment <- "Mn-cluster"
+
+PSIreactioncenter <- dplyr::filter(dataset, grepl("p700|P700", name))
+PSIreactioncenter$cellcompartment <- "P700"
+
+Flavodoxin <- dplyr::filter(dataset, grepl("flavodoxin|Flavodoxin", name))
+Flavodoxin$cellcompartment <- "Flavodoxin"
+
+Ferredoxin <- dplyr::filter(dataset, grepl("petF_1", name))
+Ferredoxin$cellcompartment <- "Ferredoxin"
+
+Cyt_B6f <- dplyr::filter(dataset, grepl("b6f|Rieske|petF_2", name))
+Cyt_B6f$cellcompartment <- "Cyt_B6f"
+
+ATPsynthase <- dplyr::filter(dataset, grepl("atpA|atpB", name))
+ATPsynthase$cellcompartment <- "ATP_synthase"
+
+Rubisco <- dplyr::filter(dataset, grepl("RUBISCO|Rubisco|rubisco", name))
+Rubisco$cellcompartment <- "Rubisco"
+
+Plastocyanin<- dplyr::filter(dataset, grepl("plastocyanin|Plastocyanin", name))
+Plastocyanin$cellcompartment <- "Plastocyanin"
+
+Ribosome <- dplyr::filter(dataset, grepl("ribosome|ribosom|Ribosom", name))
+Ribosome$cellcompartment <- "Ribosome"
+
+All_SODs <- dplyr::filter(dataset, grepl("SOD|superoxide", name))
+All_SODs$cellcompartment <- "All_SODs"
+
+Nitrate_reductase <- dplyr::filter(dataset, grepl("clust_411 ", name))
+Nitrate_reductase$cellcompartment <- "Nitrate_reductase"
+
+Nitrate_transporter <- dplyr::filter(dataset, grepl("nitrate transporter |clust", name))
+Nitrate_transporter$cellcompartment <- "Nitrate_transporter"
+
+Nitrite_reductase <- dplyr::filter(dataset, grepl("clust_1816 |clust_3042 |clust_3563 ", name))
+Nitrite_reductase$cellcompartment <- "Nitrite_reductase"
+
+Nitrite_transporter <- dplyr::filter(dataset, grepl("nitrite transporter", name))
+Nitrite_transporter$cellcompartment <- "Nitrite_transporter"
+
+CP47<- dplyr::filter(dataset, grepl("CP47", name))
+CP47$cellcompartment <- "CP47"
+
+ISIP1 <- dplyr::filter(dataset, grepl("ISIP1", name))
+ISIP1$cellcompartment <- "ISIP1"
+
+ISIP2A <- dplyr::filter(dataset, grepl("ISIP2A", name))
+ISIP2A$cellcompartment <- "ISIP2A"
+
+ISIP3 <- dplyr::filter(dataset, grepl("ISIP3", name))
+ISIP3$cellcompartment <- "ISIP3"
+
+Glutamine_synthetase <-  dplyr::filter(dataset, grepl("glutamine synthetase ", name))
+Glutamine_synthetase$cellcompartment <- "Glutamine_synthetase"
+
+Glutamate_synthase <-  dplyr::filter(dataset, grepl("glutamate synthase ", name))
+Glutamate_synthase$cellcompartment <- "Glutamate_synthase"
+
+Hydroperoxide_reductase <- dplyr::filter(dataset, grepl("hydroperoxide", name))
+Hydroperoxide_reductase$cellcompartment <- "Hydroperoxide_reductase"
+
+Hsp70 <-  dplyr::filter(dataset, grepl("Hsp70", name))
+Hsp70 $cellcompartment <- "Hsp70"
+
+Hsp90 <-  dplyr::filter(dataset, grepl("Hsp90|HSP90", name))
+Hsp90 $cellcompartment <- "Hsp90"
+
+Hsp20 <-  dplyr::filter(dataset, grepl("Hsp20", name))
+Hsp20 $cellcompartment <- "Hsp20"
+
+#Hsp90like_ATPase <-  dplyr::filter(dataset, grepl("HSP90-like", name))
+#Hsp90like_ATPase$cellcompartment <- "Hsp90like_ATPase"
+
+coldshock_protein<-  dplyr::filter(dataset, grepl("cold", name))
+coldshock_protein$cellcompartment <- "coldshock_protein"
+
+Lhcx<-  dplyr::filter(dataset, grepl("Lhcx", name))
+Lhcx$cellcompartment <- "Lhcx"
+
+Lhcf<-  dplyr::filter(dataset, grepl("Lhcf", name))
+Lhcf$cellcompartment <- "Lhcf"
+
+Lhcr<-  dplyr::filter(dataset, grepl("Lhcr", name))
+Lhcr$cellcompartment <- "Lhcr"
+
+Lhca<-  dplyr::filter(dataset, grepl("Lhca", name))
+Lhca$cellcompartment <- "Lhca"
+
+FNR <- dplyr::filter(dataset, grepl("clust_808 ", name))
+FNR$cellcompartment <- "FNR"
+
+
+Urease <- dplyr::filter(dataset, grepl("urease|Urease", name))
+Urease$cellcompartment <- "Urease"
+
+
+MetE <- dplyr::filter(dataset, grepl("Cobalamin-independent|MetE", name)) 
+MetE $cellcompartment <- "MetE"
+
+CBA1 <- dplyr::filter(dataset, grepl("CBA1", name)) 
+CBA1 $cellcompartment <- "CBA1"
+
+
+MetH <- dplyr::filter(dataset, grepl("METH", name)) 
+MetH $cellcompartment <- "MetH"
+
+Ferritin <-  dplyr::filter(dataset, grepl("Ferritin|ferritin", name))
+Ferritin $cellcompartment <- "Ferritin"
+
+NO_dioxygenase <-  dplyr::filter(dataset, grepl("clust_4956  ", name))
+NO_dioxygenase $cellcompartment <- "NO_dioxygenase"
+
+Ferric_reductase <-  dplyr::filter(dataset, grepl("ferric reductase  |Ferric", name))
+Ferric_reductase $cellcompartment <- "Ferric_reductase"
+
+Cyt_c6 <-  dplyr::filter(dataset, grepl("clust_1414 ", name))
+Cyt_c6 $cellcompartment <- "Cyt_c6"
+
+#NO_synthase <-  dplyr::filter(dataset, grepl("clust_16690 |nitric oxide synthase  ", name))
+#NO_synthase $cellcompartment <- "NO_synthase" 
+
+#ATPase <- dplyr::filter(dataset, grepl("ATPase", name)) 
+#ATPase $cellcompartment <- "ATPase"
+
+cell_compartment <- rbind (Cyt_c6, Ferric_reductase, Ferritin, CBA1, Ferredoxin, MetE, ISIP1, MetH, Urease, FNR, Lhca, Lhcf, Lhcx, Lhcr, coldshock_protein,  Hsp70, Hsp90, Hsp20, Hydroperoxide_reductase, ISIP2A,ISIP3, Nitrate_transporter, Nitrite_transporter, Glutamine_synthetase, Glutamate_synthase, CP47, Nitrite_reductase, Nitrate_reductase, Ribosome, All_SODs,NO_dioxygenase, Rhodopsin,PSIIreactioncenter,Cyt_B6f, manganesecluster, PSIreactioncenter,Flavodoxin, ATPsynthase, Rubisco, Plastocyanin)
+
+#this returns dataframe and puts it into workspace. 
+cell_compartment <<- cell_compartment
+
+}
+
+
+
+#compartments <- c('Ribosome', '', 'coldshock_protein', 'Hsp90', 'Hsp70','Hsp20', 'All_SODs','NO_dioxygenase', 'Hydroperoxide_reductase', '' ,'CBA1', 'MetH','MetE', '','Ferritin', 'Ferric_reductase', 'ISIP3', 'ISIP2A', 'ISIP1', '', 'Glutamate_synthase','Glutamine_synthetase', 'Nitrite_reductase','Nitrite_transporter', 'Nitrate_reductase', 'Nitrate_transporter', 'Urease','','Rhodopsin', 'Rubisco', 'ATP_synthase','FNR', 'Flavodoxin','Ferredoxin', 'P700', 'Lhca', 'Plastocyanin','Cyt_c6',  'Cyt_B6f', 'Mn-cluster', 'P680','CP47', 'Lhcx','Lhcr', 'Lhcf')
+
+compartments <- c('Ribosome', '',  '' ,'CBA1', 'MetH','MetE', '','Ferritin', 'Ferric_reductase', 'ISIP3', 'ISIP2A', 'ISIP1', '','NO_dioxygenase', 'Glutamate_synthase','Glutamine_synthetase', 'Nitrite_reductase','Nitrite_transporter', 'Nitrate_reductase', 'Nitrate_transporter', 'Urease','','Rhodopsin', 'Rubisco', 'ATP_synthase','FNR', 'Flavodoxin','Ferredoxin', 'P700', 'Plastocyanin','Cyt_c6',  'Cyt_B6f', 'Mn-cluster', 'P680','CP47','' , 'Lhcr', 'Lhcf', 'Lhca')
+
+
+newRow <- data.frame(fe_neg = NA, fe_pos = NA, temp_neg = NA, temp_pos = NA, tempfe_neg = NA, tempfe_pos= NA, abs_fe = NA, name = "ISIP1")
+
+
+newRow2 <- data.frame(fe_neg = NA, fe_pos = NA, temp_neg = NA, temp_pos = NA, tempfe_neg = NA, tempfe_pos= NA, abs_fe = NA, name = "MetE")
+
+newRow3 <- data.frame(fe_neg = NA, fe_pos = NA, temp_neg = NA, temp_pos = NA, tempfe_neg = NA, tempfe_pos= NA, abs_fe = NA, name = "petF_1")
+
+pseudo_slide_sub <- rbind(pseudo_slide, newRow)
+pseudo_slide_sub2 <- rbind(pseudo_slide_sub, newRow2)
+pseudo_slide_sub3 <- rbind(pseudo_slide_sub2, newRow3)
+
+
+cellcompartment(pseudo_slide_sub3)
+pseudo_cell <- cell_compartment
+
+
+cellcompartment(frag_slide)
+frag_cell <- cell_compartment
+
+
+nitratetranspot <- dplyr::filter(frag_cell, grepl("clust_991 ", name))
+
+blank_p <- frag_cell %>%
+    group_by(cellcompartment)%>%
+    summarise(fe_grp = sum(abs_fe))%>%
+    ggplot(aes(x = fe_grp,
+               y = cellcompartment)) +
+    theme_bw() +
+    xlab('') +
+    scale_y_discrete(limits = compartments)+
+    theme(axis.text.x = element_text(colour = 'white'),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank(),
+          axis.ticks = element_blank()) +
+    ylab(''); blank_p
+ 
+
+
+#volcanoplot_interactive(frag_ORF, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_rhodopsin_ORFs_alldiatoms")
+
+#volcanoplot_interactive(rhodopsin_MCL, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "temp_6C_vs_0C_rhodopsin_ORFs_alldiatoms")
+
+
+#cobalamin dependent
+#play <- dplyr::filter(pseudo_ORF, grepl(clust_1414 ", name)) 
+
+#cobalamin indepenedent 
+play <- dplyr::filter(frag_slide, grepl("Cobalamin-independent|MetE", name)) 
+play <- dplyr::filter(frag_slide, grepl("CBA1|Cobalamine-acquisition", name)) 
+
+Ferredoxin <- dplyr::filter(dataset, grepl("petF_1", name))
+Ferredoxin$cellcompartment <- "Ferredoxin"
+
+
+# frag_pn_fe <- frag_cell %>% 
+#   group_by(cellcompartment) %>%
+#   summarise(fe_grp = sum(abs_fe),
+#             fe_grp_neg = sum(fe_neg),
+#             fe_grp_pos = sum(fe_pos)) %>%
+#   ggplot(aes(x = fe_grp_neg, y = cellcompartment)) +
+#   geom_point(size = 3, alpha = 0.5, colour = 'blue') +
+#   geom_point(aes(x = fe_grp_pos, y = cellcompartment),
+#              size = 3, alpha = 0.5, colour = 'red') +
+#   geom_segment(aes(x = fe_grp_neg, xend = 0,
+#                    y = cellcompartment,
+#                    yend = cellcompartment), colour = 'blue', alpha = 0.2, lwd = 2) +
+#   geom_segment(aes(x = fe_grp_pos, xend = 0,
+#                    y = cellcompartment,
+#                    yend = cellcompartment), colour = 'red', alpha = 0.2, lwd = 2) +
+#   theme_bw() +
+#   xlab('Iron-Related DE') +
+#   ylab('') +
+#   scale_y_discrete(limits =compartments)+
+#   theme(axis.text.y = element_blank());frag_pn_fe
+# 
+# 
+# 
+# 
+# pseudo_pn_fe <- pseudo_cell %>% 
+#   group_by(cellcompartment) %>%
+#   summarise(fe_grp = sum(abs_fe),
+#             fe_grp_neg = sum(fe_neg),
+#             fe_grp_pos = sum(fe_pos)) %>%
+#   ggplot(aes(x = fe_grp_neg, y = cellcompartment)) +
+#   geom_point(size = 3, alpha = 0.5, colour = 'blue') +
+#   geom_point(aes(x = fe_grp_pos, y = cellcompartment),
+#              size = 3, alpha = 0.5, colour = 'red') +
+#   geom_segment(aes(x = fe_grp_neg, xend = 0,
+#                    y = cellcompartment,
+#                    yend = cellcompartment), colour = 'blue', alpha = 0.2, lwd = 2) +
+#   geom_segment(aes(x = fe_grp_pos, xend = 0,
+#                    y = cellcompartment,
+#                    yend = cellcompartment), colour = 'red', alpha = 0.2, lwd = 2) +
+#   theme_bw() +
+#   xlab('Iron-Related DE') +
+#   ylab('') +
+# scale_y_discrete(limits = compartments)+
+#   theme(axis.text.y = element_blank());pseudo_pn_fe
+# 
+# 
+# grid.arrange(blank_p,frag_pn_fe,pseudo_pn_fe, nrow = 1, widths = c(1.5,4,4))
+# 
+
+
+frag_pn_temp <- frag_cell %>%
+  group_by(cellcompartment) %>%
+  summarise(fe_grp = sum(abs_fe),
+            fe_grp_neg = sum(temp_neg),
+            fe_grp_pos = sum(temp_pos)) %>%
+  ggplot(aes(x = fe_grp_neg, y = cellcompartment)) +
+  geom_point(size = 3, alpha = 0.5, colour = 'blue') +
+  geom_point(aes(x = fe_grp_pos, y = cellcompartment),
+             size = 3, alpha = 0.5, colour = 'red') +
+  geom_segment(aes(x = fe_grp_neg, xend = 0,
+                   y = cellcompartment,
+                   yend = cellcompartment), colour = 'blue', alpha = 0.2, lwd = 2) +
+  geom_segment(aes(x = fe_grp_pos, xend = 0,
+                   y = cellcompartment,
+                   yend = cellcompartment), colour = 'red', alpha = 0.2, lwd = 2) +
+  theme_bw() +
+  xlab('Temp-Related DE') +
+  ylab('') +
+scale_y_discrete(limits = compartments)+
+  theme(axis.text.y = element_blank());frag_pn_temp
+# 
+# 
+pseudo_pn_temp <- pseudo_cell %>%
+  group_by(cellcompartment) %>%
+  summarise(fe_grp = sum(abs_fe),
+            fe_grp_neg = sum(temp_neg),
+            fe_grp_pos = sum(temp_pos)) %>%
+  ggplot(aes(x = fe_grp_neg, y = cellcompartment)) +
+  geom_point(size = 3, alpha = 0.5, colour = 'blue') +
+  geom_point(aes(x = fe_grp_pos, y = cellcompartment),
+             size = 3, alpha = 0.5, colour = 'red') +
+  geom_segment(aes(x = fe_grp_neg, xend = 0,
+                   y = cellcompartment,
+                   yend = cellcompartment), colour = 'blue', alpha = 0.2, lwd = 2) +
+  geom_segment(aes(x = fe_grp_pos, xend = 0,
+                   y = cellcompartment,
+                   yend = cellcompartment), colour = 'red', alpha = 0.2, lwd = 2) +
+  theme_bw() +
+  xlab('Temp-Related DE') +
+  ylab('') +
+scale_y_discrete(limits = compartments)+
+  theme(axis.text.y = element_blank()); pseudo_pn_temp
+# 
+# 
+# frag_pn_tempfe <- frag_cell %>% 
+#   group_by(cellcompartment) %>%
+#   summarise(fe_grp = sum(abs_fe),
+#             fe_grp_neg = sum(tempfe_neg),
+#             fe_grp_pos = sum(tempfe_pos)) %>%
+#   ggplot(aes(x = fe_grp_neg, y = cellcompartment)) +
+#   geom_point(size = 3, alpha = 0.5, colour = 'blue') +
+#   geom_point(aes(x = fe_grp_pos, y = cellcompartment),
+#              size = 3, alpha = 0.5, colour = 'red') +
+#   geom_segment(aes(x = fe_grp_neg, xend = 0,
+#                    y = cellcompartment,
+#                    yend = cellcompartment), colour = 'blue', alpha = 0.2, lwd = 2) +
+#   geom_segment(aes(x = fe_grp_pos, xend = 0,
+#                    y = cellcompartment,
+#                    yend = cellcompartment), colour = 'red', alpha = 0.2, lwd = 2) +
+#   theme_bw() +
+#   xlab('Temp-Fe-Related DE') +
+#   ylab('') +
+# scale_y_discrete(limits = compartments)+
+#   theme(axis.text.y = element_blank());frag_pn_tempfe
+# 
+# 
+# pseudo_pn_tempfe <- pseudo_cell %>% 
+#   group_by(cellcompartment) %>%
+#   summarise(fe_grp = sum(abs_fe),
+#             fe_grp_neg = sum(tempfe_neg),
+#             fe_grp_pos = sum(tempfe_pos)) %>%
+#   ggplot(aes(x = fe_grp_neg, y = cellcompartment)) +
+#   geom_point(size = 3, alpha = 0.5, colour = 'blue') +
+#   geom_point(aes(x = fe_grp_pos, y = cellcompartment),
+#              size = 3, alpha = 0.5, colour = 'red') +
+#   geom_segment(aes(x = fe_grp_neg, xend = 0,
+#                    y = cellcompartment,
+#                    yend = cellcompartment), colour = 'blue', alpha = 0.2, lwd = 2) +
+#   geom_segment(aes(x = fe_grp_pos, xend = 0,
+#                    y = cellcompartment,
+#                    yend = cellcompartment), colour = 'red', alpha = 0.2, lwd = 2) +
+#   theme_bw() +
+#   xlab('Temp-Fe-Related DE') +
+#   ylab('') +
+# scale_y_discrete(limits = compartments)+
+#   theme(axis.text.y = element_blank());pseudo_pn_tempfe
+# 
+# 
+# 
+# 
+# grid.arrange(blank_p,frag_pn_fe,pseudo_pn_fe, nrow = 1, widths = c(1.5,4,4))
+# 
+grid.arrange(blank_p,frag_pn_temp,pseudo_pn_temp, nrow = 1, widths = c(1.4,4,4))
+# 
+# grid.arrange(blank_p,frag_pn_tempfe,pseudo_pn_tempfe, nrow = 1, widths = c(1.4,4,4))
+
+
+
+# ISIP <- dplyr::filter(dataset, grepl("ISIP|isip", name))
+# ISIP$cellcompartment <- "All_ISIPs"
+
+#TCA <- dplyr::filter(dataset, grepl("TCA", name))
+#TCA$cellcompartment <- "TCA"
+
+
+#lightharvesting <- dplyr::filter(dataset, grepl("Lhc|LHC|harvesting|clust_1236 |clust_1194 ", name))
+#lightharvesting$cellcompartment <- "LHC"
+
+```
+
+
+
+
+sliding plot for the different cellular functions
+Percent DE per group
+```{r}
+total_number_frag <- data.frame (table(unlist(strsplit((frag_cell$cellcompartment), " "))))
+
+total_number_pseudo <- data.frame (table(unlist(strsplit((pseudo_cell$cellcompartment), " "))))
+
+
+
+frag_de <- frag_cell %>% 
+  group_by(cellcompartment) %>%
+  summarise(fe_grp = sum(abs_fe),
+            fe_grp_neg = sum(fe_neg),
+            fe_grp_pos = sum(fe_pos),
+            temp_grp_neg = sum(temp_neg),
+            temp_grp_pos = sum(temp_pos),
+            tempfe_grp_neg = sum(tempfe_neg),
+            tempfe_grp_pos = sum(tempfe_pos)
+            )
+
+  frag_de$total_number= total_number_frag$Freq
+  
+  
+
+  #frag_de$colname <- "colname"
+  colname <- "percent"
+  i=0
+  while (i < 7){
+    colname <- paste(colname, i)
+    col1 = 2+(i*1)
+   col2 = 9 
+    frag_de[[colname]] <- (frag_de[,col1]/frag_de[,col2])*100
+    i <- i+1
+  }
+  
+  frag_de_sub <- do.call(data.frame, frag_de)
+  
+  colnames (frag_de_sub) <- c("cellcompartment", "fe_grp", "fe_neg", "fe_pos", "temp_neg", "temp_pos", "tempfe_neg", "tempfe_pos", "total", "fe_grpa", "fe_nega", "fe_posa", "temp_nega", "temp_posa", "tempfe_nega", "tempfe_posa" )
+  
+
+
+  
+pseudo_de <- pseudo_cell %>% 
+  group_by(cellcompartment) %>%
+  summarise(fe_grp = sum(abs_fe),
+            fe_grp_neg = sum(fe_neg),
+            fe_grp_pos = sum(fe_pos),
+            temp_grp_neg = sum(temp_neg),
+            temp_grp_pos = sum(temp_pos),
+            tempfe_grp_neg = sum(tempfe_neg),
+            tempfe_grp_pos = sum(tempfe_pos)
+            )
+
+  pseudo_de$total_number= total_number_pseudo$Freq
+  
+  
+  colname <- "percent"
+  i=0
+  while (i < 7){
+    colname <- paste(colname, i)
+    col1 = 2+(i*1)
+   col2 = 9 
+    pseudo_de[[colname]] <- (pseudo_de[,col1]/pseudo_de[,col2])*100
+    i <- i+1
+  }
+  
+  pseudo_de_sub <- do.call(data.frame, pseudo_de)
+  
+  colnames (pseudo_de_sub) <- c("cellcompartment", "fe_grp", "fe_neg", "fe_pos", "temp_neg", "temp_pos", "tempfe_neg", "tempfe_pos", "total", "fe_grpa", "fe_nega", "fe_posa", "temp_nega", "temp_posa", "tempfe_nega", "tempfe_posa" )
+  
+  
+   frag_fe_plot<- ggplot(frag_de_sub, aes(x = fe_nega, y = cellcompartment)) +
+  geom_point(size = 3, alpha = 0.5, colour = 'blue') +
+  geom_point(aes(x = fe_posa, y = cellcompartment),
+             size = 3, alpha = 0.5, colour = 'red') +
+  geom_segment(aes(x = fe_nega, xend = 0,
+                   y = cellcompartment,
+                   yend = cellcompartment), colour = 'blue', alpha = 0.2, lwd = 2) +
+  geom_segment(aes(x = fe_posa, xend = 0,
+                   y = cellcompartment,
+                   yend = cellcompartment), colour = 'red', alpha = 0.2, lwd = 2) +
+  theme_bw() +
+  xlab('Iron-Related DE') +
+  ylab('') +
+  scale_y_discrete(limits =compartments)+
+  theme(axis.text.y = element_blank());frag_fe_plot 
+
+  
+   frag_temp_plot<- ggplot(frag_de_sub, aes(x = temp_nega, y = cellcompartment)) +
+  geom_point(size = 3, alpha = 0.5, colour = 'blue') +
+  geom_point(aes(x = temp_posa, y = cellcompartment),
+             size = 3, alpha = 0.5, colour = 'red') +
+  geom_segment(aes(x = temp_nega, xend = 0,
+                   y = cellcompartment,
+                   yend = cellcompartment), colour = 'blue', alpha = 0.2, lwd = 2) +
+  geom_segment(aes(x = temp_posa, xend = 0,
+                   y = cellcompartment,
+                   yend = cellcompartment), colour = 'red', alpha = 0.2, lwd = 2) +
+  theme_bw() +
+  xlab('Temp-Related DE') +
+  ylab('') +
+  scale_y_discrete(limits =compartments)+
+  theme(axis.text.y = element_blank());frag_temp_plot 
+
+   frag_tempfe_plot<- ggplot(frag_de_sub, aes(x = tempfe_nega, y = cellcompartment)) +
+  geom_point(size = 3, alpha = 0.5, colour = 'blue') +
+  geom_point(aes(x = tempfe_posa, y = cellcompartment),
+             size = 3, alpha = 0.5, colour = 'red') +
+  geom_segment(aes(x = tempfe_nega, xend = 0,
+                   y = cellcompartment,
+                   yend = cellcompartment), colour = 'blue', alpha = 0.2, lwd = 2) +
+  geom_segment(aes(x = tempfe_posa, xend = 0,
+                   y = cellcompartment,
+                   yend = cellcompartment), colour = 'red', alpha = 0.2, lwd = 2) +
+  theme_bw() +
+  xlab('TempFe-Related DE') +
+  ylab('') +
+  scale_y_discrete(limits =compartments)+
+  theme(axis.text.y = element_blank());frag_tempfe_plot 
+
+  
+  
+  
+  
+  pseudo_fe_plot<- ggplot(pseudo_de_sub, aes(x = fe_nega, y = cellcompartment)) +
+  geom_point(size = 3, alpha = 0.5, colour = 'blue') +
+  geom_point(aes(x = fe_posa, y = cellcompartment),
+             size = 3, alpha = 0.5, colour = 'red') +
+  geom_segment(aes(x = fe_nega, xend = 0,
+                   y = cellcompartment,
+                   yend = cellcompartment), colour = 'blue', alpha = 0.2, lwd = 2) +
+  geom_segment(aes(x = fe_posa, xend = 0,
+                   y = cellcompartment,
+                   yend = cellcompartment), colour = 'red', alpha = 0.2, lwd = 2) +
+  theme_bw() +
+  xlab('Iron-Related DE') +
+  ylab('') +
+  scale_y_discrete(limits =compartments)+
+  theme(axis.text.y = element_blank());pseudo_fe_plot 
+  
+
+  
+    pseudo_temp_plot<- ggplot(pseudo_de_sub, aes(x = temp_nega, y = cellcompartment)) +
+  geom_point(size = 3, alpha = 0.5, colour = 'blue') +
+  geom_point(aes(x = temp_posa, y = cellcompartment),
+             size = 3, alpha = 0.5, colour = 'red') +
+  geom_segment(aes(x = temp_nega, xend = 0,
+                   y = cellcompartment,
+                   yend = cellcompartment), colour = 'blue', alpha = 0.2, lwd = 2) +
+  geom_segment(aes(x = temp_posa, xend = 0,
+                   y = cellcompartment,
+                   yend = cellcompartment), colour = 'red', alpha = 0.2, lwd = 2) +
+  theme_bw() +
+  xlab('Temp-Related DE') +
+  ylab('') +
+  scale_y_discrete(limits =compartments)+
+  theme(axis.text.y = element_blank());pseudo_temp_plot 
+
+    
+ pseudo_tempfe_plot<- ggplot(pseudo_de_sub, aes(x = tempfe_nega, y = cellcompartment)) +
+  geom_point(size = 3, alpha = 0.5, colour = 'blue') +
+  geom_point(aes(x = tempfe_posa, y = cellcompartment),
+             size = 3, alpha = 0.5, colour = 'red') +
+  geom_segment(aes(x = tempfe_nega, xend = 0,
+                   y = cellcompartment,
+                   yend = cellcompartment), colour = 'blue', alpha = 0.2, lwd = 2) +
+  geom_segment(aes(x = tempfe_posa, xend = 0,
+                   y = cellcompartment,
+                   yend = cellcompartment), colour = 'red', alpha = 0.2, lwd = 2) +
+  theme_bw() +
+  xlab('TempFe-Related DE') +
+  ylab('') +
+  scale_y_discrete(limits =compartments)+
+  theme(axis.text.y = element_blank());pseudo_tempfe_plot 
+
+blank_p <- frag_cell %>%
+    group_by(cellcompartment) %>%
+     summarise(fe_grp = sum(abs_fe)) %>%
+     ggplot(aes(x = fe_grp,
+               y = cellcompartment)) +
+    theme_bw() +
+    xlab('') +
+  scale_y_discrete(limits = compartments)+
+         theme(axis.text.x = element_text(colour = 'white'),
+          panel.grid.major.x = element_blank(),
+           panel.grid.minor.x = element_blank(),
+            axis.ticks = element_blank()) +
+     ylab(''); blank_p
+
+
+
+grid.arrange(blank_p,frag_fe_plot,pseudo_fe_plot, nrow = 1, widths = c(1.5,4,4))
+grid.arrange(blank_p,frag_temp_plot,pseudo_temp_plot, nrow = 1, widths = c(1.5,4,4))
+
+grid.arrange(blank_p,frag_tempfe_plot,pseudo_tempfe_plot, nrow = 1, widths = c(1.5,4,4))
+
+#MetE = B12 (cobalamine) independent methionine synthase
+#MetH = B12 (cobalamine) dependent methionine synthase
+#CBA1 = B12 (cobalamine) acquisition protein
+```
+
+
+foldchange magnitude of groups
+```{r}
+
+
+cellcompartment(frag_ORF)
+frag_cell <- cell_compartment
+
+frag_cell$category <- "photosynthesis"
+
+
+
+
+volcanoplot_interactive(frag_cell, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_rhodopsin_clusters_alldiatoms")
+
+
+
+
+
+ISIP <- dplyr::filter(pseudo_frag_MCL, grepl("ISIP|isip|clust_9740 |clust_343 |clust_1814 |clust_1154 ", name))
+
+ISIP <- dplyr::filter(all_ORF_sub, grepl("ferritin|Ferritin|FTN|clust_15657 |clust_3034 |contig_817078_130_537_-", name))
+
+clustername_vs_foldchange(ISIP, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_rhodopsin_clusters_alldiatoms")
+
+
+
+volcanoplot_interactive(ISIP, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_rhodopsin_clusters_alldiatoms")
+
+
+ISIP1 <- dplyr::filter(frag_ORF, grepl("ISIP1", name))
+
+
+
+ISIP3 <- dplyr::filter(all_ORF, grepl("contig_680152_23_630_-", name))
+ISIP3$cellcompartment <- "ISIP3"
+
+
+lhcx<-  dplyr::filter(frag_ORF, grepl("Lhcx", name))
+Lhcx$cellcompartment <- "Lhcx"
+
+Lhcf<-  dplyr::filter(dataset, grepl("Lhcf", name))
+Lhcf$cellcompartment <- "Lhcf"
+
+Lhcr<-  dplyr::filter(dataset, grepl("Lhcr", name))
+Lhcr$cellcompartment <- "Lhcr"
+
+Lhca<-  dplyr::filter(dataset, grepl("Lhca", name))
+Lhca$cellcompartment <- "Lhca"
+
+
+ISIP<- dplyr::filter (frag_MCL, grepl('clust_1814 |clust_9740 |clust_1154 ', name))
+
+volcanoplot(frag_cell, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_ISIP_ORFs_Frag")
+
+volcanoplot_interactive(DA, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "temp_6C_vs_0C_rhodopsin_ORFs_alldiatoms")
+
+
+volcanoplot_interactive( DA, "int_fe_temp_3C_vs_0C_foldchange", "int_fe_temp_3C_vs_0C_pvalue", "temp_6C_vs_0C_rhodopsin_MCL_alldiatoms")
+
+
+
+#DAd from genbank
+DA<- dplyr::filter(pseudo_ORF, grepl("clust_12542 ", name))
+
+
+#https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4460010/
+```
+
+
+```{r}
+
+cellcompartment <- function (dataset){
+  
+Rhodopsin <- dplyr::filter(dataset, grepl("rhodopsin|Rhodopsin", name))
+Rhodopsin$cellcompartment <- "Rhodopsin"
+
+PSIIreactioncenter <- dplyr::filter(dataset, grepl("P680", name))
+PSIIreactioncenter$cellcompartment <- "P680"
+
+manganesecluster <- dplyr::filter(dataset, grepl("OEC|oec|evolving|OEE|PsbO|PsbP|PsbQ", name))
+manganesecluster$cellcompartment <- "Mn-cluster"
+
+PSIreactioncenter <- dplyr::filter(dataset, grepl("p700|P700", name))
+PSIreactioncenter$cellcompartment <- "P700"
+
+Flavodoxin <- dplyr::filter(dataset, grepl("flavodoxin|Flavodoxin", name))
+Flavodoxin$cellcompartment <- "Flavodoxin"
+
+Ferredoxin <- dplyr::filter(dataset, grepl("petF_1", name))
+Ferredoxin$cellcompartment <- "Ferredoxin"
+
+Cyt_B6f <- dplyr::filter(dataset, grepl("b6f|Rieske|petF_2", name))
+Cyt_B6f$cellcompartment <- "Cyt_B6f"
+
+ATPsynthase <- dplyr::filter(dataset, grepl("atpA|atpB", name))
+ATPsynthase$cellcompartment <- "ATP_synthase"
+
+Rubisco <- dplyr::filter(dataset, grepl("RUBISCO|Rubisco|rubisco", name))
+Rubisco$cellcompartment <- "Rubisco"
+
+Plastocyanin<- dplyr::filter(dataset, grepl("plastocyanin|Plastocyanin", name))
+Plastocyanin$cellcompartment <- "Plastocyanin"
+
+Ribosome <- dplyr::filter(dataset, grepl("ribosome|ribosom|Ribosom", name))
+Ribosome$cellcompartment <- "Ribosome"
+
+All_SODs <- dplyr::filter(dataset, grepl("SOD|superoxide", name))
+All_SODs$cellcompartment <- "All_SODs"
+
+Nitrate_reductase <- dplyr::filter(dataset, grepl("clust_411 ", name))
+Nitrate_reductase$cellcompartment <- "Nitrate_reductase"
+
+Nitrate_transporter <- dplyr::filter(dataset, grepl("nitrate transporter ", name))
+Nitrate_transporter$cellcompartment <- "Nitrate_transporter"
+
+Nitrite_reductase <- dplyr::filter(dataset, grepl("clust_1816 |clust_3042 |clust_3563 ", name))
+Nitrite_reductase$cellcompartment <- "Nitrite_reductase"
+
+Nitrite_transporter <- dplyr::filter(dataset, grepl("nitrite transporter", name))
+Nitrite_transporter$cellcompartment <- "Nitrite_transporter"
+
+CP47<- dplyr::filter(dataset, grepl("CP47", name))
+CP47$cellcompartment <- "CP47"
+
+ISIP1 <- dplyr::filter(dataset, grepl("ISIP1", name))
+ISIP1$cellcompartment <- "ISIP1"
+
+ISIP2A <- dplyr::filter(dataset, grepl("ISIP2A", name))
+ISIP2A$cellcompartment <- "ISIP2A"
+
+ISIP3 <- dplyr::filter(dataset, grepl("ISIP3", name))
+ISIP3$cellcompartment <- "ISIP3"
+
+Glutamine_synthetase <-  dplyr::filter(dataset, grepl("glutamine synthetase ", name))
+Glutamine_synthetase$cellcompartment <- "Glutamine_synthetase"
+
+Glutamate_synthase <-  dplyr::filter(dataset, grepl("glutamate synthase ", name))
+Glutamate_synthase$cellcompartment <- "Glutamate_synthase"
+
+Hydroperoxide_reductase <- dplyr::filter(dataset, grepl("hydroperoxide", name))
+Hydroperoxide_reductase$cellcompartment <- "Hydroperoxide_reductase"
+
+Hsp70 <-  dplyr::filter(dataset, grepl("Hsp70", name))
+Hsp70 $cellcompartment <- "Hsp70"
+
+Hsp90 <-  dplyr::filter(dataset, grepl("Hsp90|HSP90", name))
+Hsp90 $cellcompartment <- "Hsp90"
+
+Hsp20 <-  dplyr::filter(dataset, grepl("Hsp20", name))
+Hsp20 $cellcompartment <- "Hsp20"
+
+coldshock_protein<-  dplyr::filter(dataset, grepl("cold", name))
+coldshock_protein$cellcompartment <- "coldshock_protein"
+
+Lhcx<-  dplyr::filter(dataset, grepl("Lhcx", name))
+Lhcx$cellcompartment <- "Lhcx"
+
+Lhcf<-  dplyr::filter(dataset, grepl("Lhcf", name))
+Lhcf$cellcompartment <- "Lhcf"
+
+Lhcr<-  dplyr::filter(dataset, grepl("Lhcr", name))
+Lhcr$cellcompartment <- "Lhcr"
+
+Lhca<-  dplyr::filter(dataset, grepl("Lhca", name))
+Lhca$cellcompartment <- "Lhca"
+
+FNR <- dplyr::filter(dataset, grepl("clust_808 ", name))
+FNR$cellcompartment <- "FNR"
+
+
+Urease <- dplyr::filter(dataset, grepl("urease|Urease", name))
+Urease$cellcompartment <- "Urease"
+
+
+MetE <- dplyr::filter(dataset, grepl("Cobalamin-independent|MetE", name)) 
+MetE $cellcompartment <- "MetE"
+
+CBA1 <- dplyr::filter(dataset, grepl("CBA1", name)) 
+CBA1 $cellcompartment <- "CBA1"
+
+
+MetH <- dplyr::filter(dataset, grepl("METH", name)) 
+MetH $cellcompartment <- "MetH"
+
+Ferritin <-  dplyr::filter(dataset, grepl("Ferritin|ferritin", name))
+Ferritin $cellcompartment <- "Ferritin"
+
+NO_dioxygenase <-  dplyr::filter(dataset, grepl("clust_4956  ", name))
+NO_dioxygenase $cellcompartment <- "NO_dioxygenase"
+
+Ferric_reductase <-  dplyr::filter(dataset, grepl("ferric reductase  |Ferric", name))
+Ferric_reductase $cellcompartment <- "Ferric_reductase"
+
+Cyt_c6 <-  dplyr::filter(dataset, grepl("clust_1414 ", name))
+Cyt_c6 $cellcompartment <- "Cyt_c6"
+
+cell_compartment <- rbind (Cyt_c6, Ferric_reductase, Ferritin, CBA1, Ferredoxin, MetE, ISIP1, MetH, Urease, FNR, Lhca, Lhcf, Lhcx, Lhcr, coldshock_protein,  Hsp70, Hsp90, Hsp20, Hydroperoxide_reductase, ISIP2A,ISIP3, Nitrate_transporter, Nitrite_transporter, Glutamine_synthetase, Glutamate_synthase, CP47, Nitrite_reductase, Nitrate_reductase, Ribosome, All_SODs,NO_dioxygenase, Rhodopsin,PSIIreactioncenter,Cyt_B6f, manganesecluster, PSIreactioncenter,Flavodoxin, ATPsynthase, Rubisco, Plastocyanin)
+
+cell_compartment <<- cell_compartment
+
+}
+
+
+cellcompartment(frag_ORF)
+frag_cell <- cell_compartment
+frag_cell$category <- "other"
+
+
+
+
+
+
+LHC <- "Light Harvesting Complex"
+core_photosynthesis <- "Core Photosynthesis"
+nitrogen <- "Nitrogen Assimilation"
+iron <- "Fe Transport/Storage"
+B12 <- "B12-related"
+anitox <- "Antioxidant"
+ribosome <- "Ribosome"
+rhodopsin <- "Rhodopsin"
+
+
+categorymap <- c("Lhcf"= LHC, "Lhcr" = LHC, "Lhca" = LHC, "Lhcx" = LHC, "CP47" = photosynthesis,  "P680"=photosynthesis, "Mn-cluster" = photosynthesis,"Cyt_B6f" = photosynthesis,"Cyt_c6" = photosynthesis, "Plastocyanin" = photosynthesis, "P700" = photosynthesis,"Ferredoxin" = photosynthesis, "Flavodoxin" = photosynthesis, "FNR" = photosynthesis, "ATP_synthase" = photosynthesis, "Rubisco" = photosynthesis, "Rhodopsin" = rhodopsin, "Urease" = nitrogen, "Nitrate_transporter" = nitrogen, "Nitrate_reductase" = nitrogen, "Nitrite_transporter" = nitrogen, "Nitrite_reductase" = nitrogen, "Glutamine_synthetase" = nitrogen, "Glutamate_synthase" = nitrogen, "ISIP1" = iron, "ISIP2A" = iron, "ISIP3" = iron, "Ferritin" = iron, "Ferric_reductase" = iron, "MetE" = B12, "MetH" = B12, "CBA1" = B12, "Hydroperoxide_reductase" = anitox, "NO_dioxygenase" = anitox, "All_SODs" = anitox, "Hsp20" = anitox, "Hsp70" = anitox, "Hsp90" = anitox, "coldshock_protein" = anitox, "Ribosome" = ribosome  )
+
+
+frag_cell$category <- categorymap[frag_cell$cellcompartment]
+
+
+volcanoplot_interactive_groups(frag_cell, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_Frag")
+
+
+volcanoplot_interactive_groups(frag_cell, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "hightemp_vs_lowtemp_frag")
+
+
+volcanoplot_interactive_groups(frag_cell,"int_fe_temp_6C_vs_0C_foldchange", "int_fe_temp_6C_vs_0C_pvalue", " tempfe_interaction_Frag")
+
+
+
+
+
+
+
+volcanoplot <- function(dataset, foldchange, FDR, graphtitle){
+  volcano <- dataset[c("name",foldchange, FDR,"Taxa.group", "category" )]
+  x <- foldchange
+  
+  names(volcano) <- c( "gene", "Fold", "FDR", "taxa", "category")
+  volcano ["group"] <- "no-fold-change"
+  
+  if(grepl("Fe_vs_noFe_foldchange", x)) {
+    volcano['size'] <- rowMeans( dataset[, c(4:21)])
+  } else if (grepl("temp_3C_vs_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:15)])
+  } else if (grepl("temp_6C_vs_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:9, 16:21)])
+  } else if (grepl("temp_6C_vs_3C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(10:21)])
+  } else if (grepl("int_fe_temp_6C_vs_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:9, 16:21)])
+  } else if (grepl("int_fe_temp_3C_vs_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:15)])
+  } else if (grepl("noFe_3C_vs_noFe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:6,10:12 )])
+  } else if (grepl("noFe_6C_vs_noFe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:6, 16:18)])
+  } else if (grepl("Fe_3C_vs_Fe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(7:9, 13:15)])
+  } else if (grepl("Fe_6C_vs_Fe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans(dataset[, c(7:9, 19:21)])
+  } else if (grepl("noFe_6C_vs_noFe_3C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(16:18,10:12)])
+  } else if (grepl("Fe_6C_vs_Fe_3C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(13:15, 19:21)])
+  } else if (grepl("Fe_0C_vs_noFe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:9)])
+  } else if (grepl("Fe_3C_vs_noFe_3C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(10:15)])
+  } else if (grepl("Fe_6C_vs_noFe_6C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(16:21)])
+  }
+  
+
+  volcano [which(volcano['FDR'] < 0.05 & abs(volcano['Fold']) < 2), "group"]<- "nofoldchange_significant" 
+  volcano [which(volcano ['FDR'] > 0.05 & abs(volcano['Fold'])> 2), "group"] <- "fold-change_notsignificant"
+  volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 2), "group"] <- "fold-change_significant"
+  
+  ggplot (data = volcano, aes(x= Fold, y=-log10(FDR), color = category, label=gene)) +
+    geom_point (alpha=0.5)+
+    scale_shape (solid=FALSE)+
+    geom_hline (yintercept = 1.301, col = "blue", lty = 2, lwd=0.5 )+
+    geom_vline (xintercept = c(-1,1), col = "blue", lty = 2, lwd=0.5 )+
+    xlab("Log2 Fold Change")+ ylab("-Log10_P-value")+
+   # scale_color_manual(values = c("black", "red", "#00FF00"))+
+    ggtitle(graphtitle)+
+    theme_bw()+
+    theme(plot.title = element_text(hjust = 0.5))
+    #geom_label_repel(data = subset(volcano, abs(Fold) >1 & -log10(FDR) >1.3),
+     # aes(label=gene), box.padding = 0.2, point.padding = 0.5, color= 'black', size =1)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+volcanoplot_interactive_groups <- function(dataset, Fold, FDR, volcanontitle){
+  volcano <- dataset[c("name",Fold, FDR,"Taxa.group", "category")]
+  x <- Fold
+  
+  names(volcano) <- c( "gene", "Fold", "FDR", "taxa", "category")
+  volcano ["group"] <- "no-fold-change"
+  
+  volcano [which(volcano['FDR'] < 0.05 & abs(volcano['Fold']) < 2), "group"]<- "nofoldchange_significant" 
+  
+  volcano [which(volcano ['FDR'] > 0.05 & abs(volcano['Fold'])> 2), "group"] <- "fold-change_notsignificant"
+  
+  volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 2), "group"] <- "fold-change_significant"
+  
+  vline <- function(x = 0, color = "black") {
+    list(
+      type = "line", 
+      y0 = 0, 
+      y1 = 1, 
+      yref = "paper",
+      x0 = x, 
+      x1 = x, 
+      line = list(color = color, dash='dot', width=1)
+    )
+  }
+  
+  hline <- function(y = 0, color = "black") {
+    list(
+      type = "line", 
+      x0 = 0, 
+      x1 = 1, 
+      xref = "paper",
+      y0 = y, 
+      y1 = y, 
+      line = list(color = color, dash='dot', width=1)
+    )
+  }
+  
+  x <- list (title ="Log2 Fold Change")
+  y <- list (title = "-Log10_P-value")
+ # ax<- list(showline = TRUE, zeroline=FALSE, linecolor = toRGB("black"),
+            #linewidth = 6)
+  plot_ly(data = volcano, x = volcano$Fold, y = -log10(volcano$FDR), text = volcano$gene, mode = "markers", symbol = volcano$category)%>% #size = volcano$size )%>% 
+    layout(title = volcanontitle)%>%
+    layout (xaxis = x, yaxis = y)%>%
+    layout(shapes = list(vline (-1), vline(1), hline(1.301)))
+    #layout (xaxis = ax, yaxis =ax)
+}
+```
+
+
+
+clusters in each of the groups, so we can make a cluster plot
+```{r}
+
+clustername_vs_foldchange_group <- function(dataset, foldchange, FDR, graphtitle){
+  volcano <- dataset[c("name",foldchange, FDR,"Taxa.group", "clustercompartment" )]
+  x <- foldchange
+  
+  names(volcano) <- c( "gene", "Fold", "FDR", "taxa", "clustercompartment")
+  volcano ["group"] <- "no-fold-change"
+  
+  if(grepl("Fe_vs_noFe_foldchange", x)) {
+    volcano['size'] <- rowMeans( dataset[, c(4:21)])
+  } else if (grepl("temp_3C_vs_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:15)])
+  } else if (grepl("temp_6C_vs_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:9, 16:21)])
+  } else if (grepl("temp_6C_vs_3C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(10:21)])
+  } else if (grepl("int_fe_temp_6C_vs_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:9, 16:21)])
+  } else if (grepl("int_fe_temp_3C_vs_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:15)])
+  } else if (grepl("noFe_3C_vs_noFe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:6,10:12 )])
+  } else if (grepl("noFe_6C_vs_noFe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:6, 16:18)])
+  } else if (grepl("Fe_3C_vs_Fe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(7:9, 13:15)])
+  } else if (grepl("Fe_6C_vs_Fe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans(dataset[, c(7:9, 19:21)])
+  } else if (grepl("noFe_6C_vs_noFe_3C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(16:18,10:12)])
+  } else if (grepl("Fe_6C_vs_Fe_3C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(13:15, 19:21)])
+  } else if (grepl("Fe_0C_vs_noFe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:9)])
+  } else if (grepl("Fe_3C_vs_noFe_3C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(10:15)])
+  } else if (grepl("Fe_6C_vs_noFe_6C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(16:21)])
+  }
+  
+#volcano$shape <- "1"
+#if(subset(volcano, -log10(FDR) >1.3)) {volcano$shape <- "2"}
+
+#shape[volcano$ FDR < 0.05] <- "19"
+#shape[volcano$ FDR > 0.05] <- "1"
+
+# volcano$shape<- "4"
+# if (volcano$FDR > 0.05) {
+#     volcano$shape <- "1"
+# } 
+
+  
+volcano$shapez <-  ifelse (volcano$FDR < 0.05, "1", "16") 
+
+
+
+  ggplot (data = volcano, aes(x= Fold, y= clustercompartment, color = taxa, label=gene, shape = shapez)) +
+    geom_point (alpha=0.7, size =2)+
+   
+    scale_shape_manual (values = c(16, 1), guide = FALSE)+
+    ylab("cluster")+ 
+    xlab("log2 fold-change")+
+    scale_color_manual(values = c("black", "red"))+
+    scale_y_discrete(limits = compartments)+
+    ggtitle(graphtitle)+
+    theme_bw()+
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(axis.text.x = element_text(
+            hjust=1,
+      size = 11, 
+      face = "bold")) +
+    theme(axis.text.y = element_text(
+            hjust=1,
+      size = 11, 
+      face = "bold")) +
+    geom_vline (xintercept = c(0), col = "black", lty = 2, lwd=0.3 )
+    
+     # geom_text_repel(data = subset(volcano, -log10(FDR) >1.3),
+  #aes(label="*"), box.padding = 0, point.padding = 0.1, color= 'blue', size =3)
+  
+  #geom_text_repel(data = subset(volcano, -log10(FDR) >1.3),
+  #aes(label="*"), box.padding = 0, point.padding = 0.1, color= 'blue', size =3)
+}
+
+  
+  
+#the code below goes through each 'group', so LHCs, ATP-synthase etc.. and picks out MCL clusters from each group, and plots them to show fold change. blue stars represent signigicant fold change. 
+
+#this is to pick out the cluster for each of the groups, inside the grepl function is the terminooglogy I used for my sliding plots.  
+clusters<- dplyr::filter(pseudo_frag_ORF, grepl("nitrate transporter " , name))
+unique(clusters$cluster)
+
+
+clustername_vs_foldchange(clusters,"Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", "Fe_vs_noFe")
+
+clustername_vs_foldchange(clusters, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "hightemp_vs_lowtemp")
+
+
+volcanoplot_interactive(clusters,"Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", "Fe_vs_noFe")
+
+volcanoplot_interactive(pseudo_frag_MCL, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "hightemp_vs_lowtemp")
+
+
+
+#create a dataset with all the clusters for all the groups. 
+cluster_dataset <- dplyr::filter(pseudo_frag_MCL, grepl("clust_332 |clust_1236 |clust_80 |clust_402 |clust_1044 |clust_3282 |clust_1194 |clust_3219 |clust_1084 |clust_3551 |clust_646  |clust_1938 |clust_2549 |clust_3551 |clust_1787 |clust_712 |clust_2256 |clust_3363 |clust_1414 |clust_498 |clust_211 |clust_42 |clust_24191 |clust_55 |clust_2763 |clust_1906 |clust_15862 |clust_5856 |clust_27282 |clust_5235 |clust_14895 |clust_86124 |clust_12649 |clust_26101 |clust_231 |clust_1548 |clust_1820 |clust_2212 |clust_1822 |clust_1668 |clust_1196 |clust_1452 |clust_534 |clust_4660 |clust_808 |clust_349 |clust_78 |clust_306 |clust_1846 |clust_129 |clust_816 |clust_3167 |clust_120 |clust_3290 |clust_9740 |clust_343 |clust_1814 |clust_1154 |clust_991 |clust_411 |clust_1816 |clust_2277 |clust_589 |clust_284 |clust_891 |clust_15657 |clust_4956 |clust_6089 |clust_7529 |clust_2658 |clust_557 |clust_3360 |clust_35 |clust_3360 |clust_15652 |clust_10606 |clust_1 |clust_550 |clust_1 |clust_4298 |clust_4298 |clust_823 |clust_6713 |clust_444 |clust_22 |clust_219 |clust_4251 |clust_5230 |clust_7451 |clust_417 ", name))
+
+#make a library of all the names
+cluster_dataset$cluster <- as.character(cluster_dataset$cluster)
+lhcf <- "LHC-f"
+lhcr <- "LHC-r"
+lhca <- "LHC-a"
+lhcx <- "LHC-x"
+p680 <- "P680"
+mnclus <- "Manganese Cluster"
+cytb6f <- "Cytochrome b6f Complex"
+atpsyn <- "ATP Synthase"
+rib <- "Ribosome"
+
+
+
+#compartments <- c('Ribosome', '', 'coldshock_protein', 'Hsp90', 'Hsp70','Hsp20', 'All_SODs','Nitric Oxide Dioxygenase', 'Hydroperoxide_reductase', '' ,'CBA1', 'MetH','MetE', '','Ferritin', 'Ferric_reductase', 'ISIP3', 'ISIP2A', 'ISIP1', '', 'Glutamate Synthase','Glutamine Synthetase', 'Nitrite Reductase','Nitrite Transporter', 'Nitrate Reductase', 'Nitrate Transporter', 'Urease','','Rhodopsin_1', 'Rhodopsin_2', 'RuBisCO', 'ATP Synthase','FNR', 'Flavodoxin','Ferredoxin', 'P700', 'LHC-a', 'Plastocyanin','Cytochrome c6',  'Cytochrome b6f Complex', 'Manganese Cluster', 'P680','PSII CP-47 reaction center protein', 'LHC-x','LHC-r', 'LHC-f')
+
+
+compartments <- c('Ribosome', '' ,'CBA1', 'MetH','MetE', '','Ferritin', 'Ferric Reductase', 'ISIP3', 'ISIP2A', 'ISIP1', '','Nitric Oxide Dioxygenase', 'Glutamate Synthase','Glutamine Synthetase', 'Nitrite Reductase','Nitrite Transporter', 'Nitrate Reductase', 'Nitrate Transporter', 'Urease','Ammonium Transporter', '','Rhodopsin_1','Rhodopsin_2', 'RuBisCO', 'ATP Synthase','FNR', 'Flavodoxin','Ferredoxin', 'P700', 'Plastocyanin','Cytochrome c6',  'Cytochrome b6f Complex', 'Manganese Cluster', 'P680','PSII CP-47 reaction center protein','' , 'LHC-r', 'LHC-f', 'LHC-a')
+
+
+
+#match all the clusters to a group name
+
+categorymap_cluster <- c("clust_417" = "Ammonium Transporter", "clust_332" = lhcf, "clust_1236" = lhcf, "clust_80" = lhcf, "clust_402" = lhcf, "clust_1044" = lhcf, "clust_3282" = lhcf, "clust_1194" = lhcf, "clust_3219" = lhcr, "clust_1084"=lhcr, "clust_3551"=lhcr, "clust_646"=lhcr,  "clust_1938"=lhcr, "clust_2549" = lhca, "clust_3551" = lhca, "clust_1787" =lhcx, "clust_712"=lhcx,  "clust_2256"=lhcx, "clust_3363"=lhcx, "clust_1414" = "Cytochrome c6", "clust_498" = "PSII CP-47 reaction center protein", "clust_211" = p680, "clust_42" = p680, "clust_24191" = p680, "clust_55" = "P700", "clust_2763" = mnclus,  "clust_1906"=mnclus,  "clust_15862" = mnclus,  "clust_5856"=mnclus,   "clust_27282" =mnclus,  "clust_5235"=mnclus,   "clust_14895"=mnclus, "clust_86124" = mnclus,  "clust_12649" =mnclus,  "clust_26101" = mnclus, "clust_231" = "Rhodopsin_1", "clust_1548" = "Rhodopsin_2", "clust_1820" = "Plastocyanin", "clust_2212" = cytb6f, "clust_1822" = cytb6f, "clust_1668" = cytb6f, "clust_1196" =cytb6f, "clust_1452" = "Ferredoxin", "clust_534" = "Flavodoxin", "clust_4660" = "Flavodoxin", "clust_808" = "FNR", "clust_78" = atpsyn, "clust_349" = atpsyn, "clust_306" = atpsyn, "clust_1846" = atpsyn, "clust_129" = "RuBisCO", "clust_816" = "RuBisCO", "clust_3167" = "MetE", "clust_120" = "MetH", "clust_3290" = "CBA1", "clust_9740" = "ISIP2A", "clust_343" = "ISIP2A", "clust_1814" = "ISIP1", "clust_1154" = "ISIP3", "clust_991" = "Nitrate Transporter", "clust_411" = "Nitrate Reductase", "clust_1816" = "Nitrite Reductase", "clust_2277" = "Nitrite Transporter", "clust_589" = "Glutamine Synthetase", "clust_284" = "Glutamine Synthetase", "clust_891" = "Glutamate Synthase", "clust_15657" = "Ferritin","clust_4956" = "Nitric Oxide Dioxygenase", 
+#ribosomes:
+"clust_6089" = rib, "clust_7529" = rib,  "clust_2658" = rib, "clust_557" = rib, "clust_3360" = rib, "clust_35"=rib, "clust_3360" = rib, "clust_15652"=rib,  "clust_10606" = rib, "clust_1"=rib, "clust_550" =rib, "clust_1"=rib, "clust_4298" = rib,  "clust_4298" = rib,  "clust_823" = rib, "clust_6713" = rib,  "clust_444"=rib,  "clust_22"=rib,  "clust_219" = rib, "clust_4251"=rib ,"clust_5230" = rib,  "clust_7451" = rib )
+
+
+cluster_dataset$clustercompartment <- categorymap_cluster[cluster_dataset$cluster]
+
+
+
+clustername_vs_foldchange_group(cluster_dataset,"Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", "Fe_vs_noFe")
+
+
+clustername_vs_foldchange_group(cluster_dataset, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "hightemp_vs_lowtemp")
+
+
+clustername_vs_foldchange_group(cluster_dataset,"int_fe_temp_6C_vs_0C_foldchange", "int_fe_temp_6C_vs_0C_pvalue", " tempfe_interaction")
+
+
+
+
+#Lhcf: clust_332   clust_1236  clust_80    clust_402   clust_1044  clust_3282  clust_1194 clust_58632 clust_19392
+# Lhcr: clust_3219 clust_1084 clust_3551 clust_646  clust_1938
+# Lhcx: clust_1787 clust_712  clust_2256 clust_3363
+# Lhca : clust_2549 clust_3551
+
+
+# Cyt_c6: clust_1414
+# Ferric_reductase
+# Ferritin: clust_15657 clust_3034 , will use 15657
+# CBA1 :clust_3290
+# Ferredoxin :clust_1452
+# MetE : clust_3167
+# ISIP2A : clust_343   clust_9740  clust_25598 clust_23469 , will use 343 and 9740, most abundand and most number of ORFs
+# MetH: clust_120
+# Urease
+# FNR :clust_808
+# coldshock_protein
+# Hsp70
+# Hsp90
+# Hsp20
+# Hydroperoxide_reductase
+# ISIP1:"1814"
+# ISIP3: clust_1154
+# Nitrate_transporter "clust_991"
+# Nitrite_transporter clust_2277
+# Glutamine_synthetase clust_284   clust_589   clust_19873, will use 589 and 284
+# Glutamate_synthase clust_241   clust_35306 clust_4150  clust_1536  clust_891  will use 891
+# CP47 : clust_498
+# Nitrite_reductase "clust_1816 |clust_3042 |clust_3563, will only use 1816
+# Nitrate_reductase clust_411
+# Ribosome
+# All_SODs
+# NO_dioxygenase: clust_4956  
+# Rhodopsin: clust_231   clust_10297 clust_4014  clust_22740 clust_1548  clust_8237  clust_19837. only picked 231 and 1548
+# PSIIreactioncenter : clust_211   clust_42    clust_24191
+# Cyt_B6f : clust_12658 clust_13257 clust_2212  clust_1668  clust_6832  clust_1196  clust_36838 clust_1822  clust_8685 . only used 2212, 1822, 1668, 1196
+# manganesecluster:clust_2763  clust_1906  clust_15862 clust_5856  clust_27282 clust_5235  clust_14895 clust_86124 clust_12649 clust_26101
+# PSIreactioncenter : clust_55
+# Flavodoxin : clust_534   clust_6705  clust_14718 clust_4660  clust_4907  clust_33174 clust_7510 clust_27848 clust_7157  clust_12773. chose 534 (most abundant), and 4660, high number of ORFs
+# ATPsynthase: clust_8057 clust_1846 clust_78   clust_349  clust_43   clust_412  clust_306. will use 78, 349, 1846
+# Rubisco : clust_9476  clust_753   clust_7380  clust_3897  clust_10038 clust_68857 clust_816  clust_129 . will use 129 (most abundant) and 816, many ORFS
+# Plastocyanin: clust_1820 clust_2908, will only choose 1820
+
+
+clustername_vs_foldchange_group <- function(dataset, foldchange, FDR, graphtitle){
+  volcano <- dataset[c("name",foldchange, FDR,"Taxa.group", "clustercompartment" )]
+  x <- foldchange
+  
+  names(volcano) <- c( "gene", "Fold", "FDR", "taxa", "clustercompartment")
+  volcano ["group"] <- "no-fold-change"
+  
+  if(grepl("Fe_vs_noFe_foldchange", x)) {
+    volcano['size'] <- rowMeans( dataset[, c(4:21)])
+  } else if (grepl("temp_3C_vs_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:15)])
+  } else if (grepl("temp_6C_vs_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:9, 16:21)])
+  } else if (grepl("temp_6C_vs_3C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(10:21)])
+  } else if (grepl("int_fe_temp_6C_vs_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:9, 16:21)])
+  } else if (grepl("int_fe_temp_3C_vs_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:15)])
+  } else if (grepl("noFe_3C_vs_noFe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:6,10:12 )])
+  } else if (grepl("noFe_6C_vs_noFe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:6, 16:18)])
+  } else if (grepl("Fe_3C_vs_Fe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(7:9, 13:15)])
+  } else if (grepl("Fe_6C_vs_Fe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans(dataset[, c(7:9, 19:21)])
+  } else if (grepl("noFe_6C_vs_noFe_3C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(16:18,10:12)])
+  } else if (grepl("Fe_6C_vs_Fe_3C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(13:15, 19:21)])
+  } else if (grepl("Fe_0C_vs_noFe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:9)])
+  } else if (grepl("Fe_3C_vs_noFe_3C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(10:15)])
+  } else if (grepl("Fe_6C_vs_noFe_6C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(16:21)])
+  }
+  
+#volcano$shape <- "1"
+#if(subset(volcano, -log10(FDR) >1.3)) {volcano$shape <- "2"}
+
+#shape[volcano$ FDR < 0.05] <- "19"
+#shape[volcano$ FDR > 0.05] <- "1"
+
+# volcano$shape<- "4"
+# if (volcano$FDR > 0.05) {
+#     volcano$shape <- "1"
+# } 
+
+  
+volcano$shapez <-  ifelse (volcano$FDR < 0.05, "1", "16") 
+
+
+
+  ggplot (data = volcano, aes(x= Fold, y= clustercompartment, color = taxa, label=gene, shape = shapez)) +
+    geom_point (alpha=0.5)+
+   
+   # geom_text_repel(data = subset(volcano, -log10(FDR) >1.3),
+  #aes(label="*"), box.padding = 0, point.padding = 0.1, color= 'blue', size =3)
+    scale_shape_manual (values = c(16, 1), guide = FALSE)+
+    ylab("cluster")+ 
+    xlab("log2 fold-change")+
+    scale_color_manual(values = c("black", "red"))+
+    scale_y_discrete(limits = compartments)+
+    ggtitle(graphtitle)+
+    theme_bw()+
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(axis.text.x = element_text(
+            hjust=1,
+      size = 9, 
+      face = "bold")) +
+    geom_vline (xintercept = c(0), col = "black", lty = 2, lwd=0.3 )
+    
+  #geom_text_repel(data = subset(volcano, -log10(FDR) >1.3),
+  #aes(label="*"), box.padding = 0, point.padding = 0.1, color= 'blue', size =3)
+}
+
+
+clustername_vs_foldchange_group(cluster_dataset, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "hightemp_vs_lowtemp")
+
+
+
+
+
+ribosomes <- dplyr::filter(clusters, grepl("clust_6089 |clust_7529 |clust_2658 |clust_557 |clust_3360 |clust_35 |clust_3360 |clust_15652 |clust_10606 |clust_1 |clust_550 |clust_1 |clust_4298 |clust_4298 |clust_823 |clust_6713 |clust_444 |clust_22 |clust_219 |clust_4251 |clust_5230 |clust_7451 " , name))
+
+
+
+
+``` 
+
+
+combining major groups
+```{r}
+
+clustername_vs_foldchange_group <- function(dataset, foldchange, FDR, graphtitle){
+  volcano <- dataset[c("name",foldchange, FDR,"Taxa.group", "clustercompartment" )]
+  x <- foldchange
+  
+  names(volcano) <- c( "gene", "Fold", "FDR", "taxa", "clustercompartment")
+  volcano ["group"] <- "no-fold-change"
+  
+  if(grepl("Fe_vs_noFe_foldchange", x)) {
+    volcano['size'] <- rowMeans( dataset[, c(4:21)])
+  } else if (grepl("temp_3C_vs_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:15)])
+  } else if (grepl("temp_6C_vs_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:9, 16:21)])
+  } else if (grepl("temp_6C_vs_3C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(10:21)])
+  } else if (grepl("int_fe_temp_6C_vs_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:9, 16:21)])
+  } else if (grepl("int_fe_temp_3C_vs_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:15)])
+  } else if (grepl("noFe_3C_vs_noFe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:6,10:12 )])
+  } else if (grepl("noFe_6C_vs_noFe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:6, 16:18)])
+  } else if (grepl("Fe_3C_vs_Fe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(7:9, 13:15)])
+  } else if (grepl("Fe_6C_vs_Fe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans(dataset[, c(7:9, 19:21)])
+  } else if (grepl("noFe_6C_vs_noFe_3C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(16:18,10:12)])
+  } else if (grepl("Fe_6C_vs_Fe_3C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(13:15, 19:21)])
+  } else if (grepl("Fe_0C_vs_noFe_0C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(4:9)])
+  } else if (grepl("Fe_3C_vs_noFe_3C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(10:15)])
+  } else if (grepl("Fe_6C_vs_noFe_6C_foldchange", x)){
+    volcano['size'] <- rowMeans( dataset[, c(16:21)])
+  }
+volcano$shapez <-  ifelse (volcano$FDR < 0.05, "1", "16") 
+
+  ggplot (data = volcano, aes(x= Fold, y= clustercompartment, color = taxa, label=gene, shape = shapez)) +
+    geom_point (alpha=0.7, size =2)+
+   
+    scale_shape_manual (values = c(16, 1), guide = FALSE)+
+    ylab("cluster")+ 
+    xlab("log2 fold-change")+
+    scale_color_manual(values = c("black", "red"))+
+    scale_y_discrete(limits = compartments)+
+    ggtitle(graphtitle)+
+    theme_bw()+
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(axis.text.x = element_text(
+            hjust=1,
+      size = 11, 
+      face = "bold")) +
+    theme(axis.text.y = element_text(
+            hjust=1,
+      size = 11, 
+      face = "bold")) +
+    geom_vline (xintercept = c(0), col = "black", lty = 2, lwd=0.3 )
+}
+
+
+
+cluster_dataset <- dplyr::filter(pseudo_frag_MCL, grepl("clust_332 |clust_1236 |clust_80 |clust_402 |clust_1044 |clust_3282 |clust_1194 |clust_3219 |clust_1084 |clust_3551 |clust_646  |clust_1938 |clust_2549 |clust_3551 |clust_1787 |clust_712 |clust_2256 |clust_3363 |clust_1414 |clust_498 |clust_211 |clust_42 |clust_24191 |clust_55 |clust_2763 |clust_1906 |clust_15862 |clust_5856 |clust_27282 |clust_5235 |clust_14895 |clust_86124 |clust_12649 |clust_26101 |clust_231 |clust_1548 |clust_1820 |clust_2212 |clust_1822 |clust_1668 |clust_1196 |clust_1452 |clust_534 |clust_4660 |clust_808 |clust_349 |clust_78 |clust_306 |clust_1846 |clust_129 |clust_816 |clust_3167 |clust_120 |clust_3290 |clust_9740 |clust_343 |clust_1814 |clust_1154 |clust_991 |clust_411 |clust_1816 |clust_2277 |clust_589 |clust_284 |clust_891 |clust_15657 |clust_4956 |clust_6089 |clust_7529 |clust_2658 |clust_557 |clust_3360 |clust_35 |clust_3360 |clust_15652 |clust_10606 |clust_1 |clust_550 |clust_1 |clust_4298 |clust_4298 |clust_823 |clust_6713 |clust_444 |clust_22 |clust_219 |clust_4251 |clust_5230 |clust_7451 |clust_417 ", name))
+
+
+cluster_dataset$cluster <- as.character(cluster_dataset$cluster)
+p680 <- "P680"
+mnclus <- "Manganese Cluster"
+cytb6f <- "Cytochrome b6f Complex"
+atpsyn <- "ATP Synthase"
+rib <- "Ribosome"
+
+
+compartments <- c('Ribosome', '' ,'CBA1', 'MetH','MetE', '','Ferritin', 'ISIPs', '','Nitric Oxide Dioxygenase', 'GOGAT', 'Nitrite Reductase','Nitrite Transporter', 'Nitrate Reductase', 'Nitrate Transporter','Ammonium Transporter', '','Rhodopsin_1','Rhodopsin_2', 'RuBisCO', 'ATP Synthase','FNR', 'Flavodoxin','Ferredoxin', 'P700', 'Plastocyanin','Cytochrome c6',  'Cytochrome b6f Complex', "PSII",'' , 'LHCs')
+
+
+
+
+categorymap_cluster <- c("clust_417" = "Ammonium Transporter", "clust_332" = "LHCs", "clust_1236" = "LHCs", "clust_80" = "LHCs", "clust_402" = "LHCs", "clust_1044" = "LHCs", "clust_3282" = "LHCs", "clust_1194" = "LHCs", "clust_3219" = "LHCs", "clust_1084"="LHCs", "clust_3551"="LHCs", "clust_646"="LHCs",  "clust_1938"="LHCs", "clust_2549" = "LHCs", "clust_3551" = "LHCs", "clust_1787" ="LHCs", "clust_712"="LHCs",  "clust_2256"="LHCs", "clust_3363"="LHCs", "clust_1414" = "Cytochrome c6", "clust_498" = "PSII", "clust_211" = "PSII", "clust_42" = "PSII", "clust_24191" = "PSII", "clust_55" = "P700", "clust_2763" = "PSII",  "clust_1906"="PSII",  "clust_15862" = "PSII",  "clust_5856"="PSII",   "clust_27282" ="PSII",  "clust_5235"="PSII",   "clust_14895"="PSII", "clust_86124" = "PSII",  "clust_12649" ="PSII",  "clust_26101" = "PSII", "clust_231" = "Rhodopsin_1", "clust_1548" = "Rhodopsin_2", "clust_1820" = "Plastocyanin", "clust_2212" = cytb6f, "clust_1822" = cytb6f, "clust_1668" = cytb6f, "clust_1196" =cytb6f, "clust_1452" = "Ferredoxin", "clust_534" = "Flavodoxin", "clust_4660" = "Flavodoxin", "clust_808" = "FNR", "clust_78" = atpsyn, "clust_349" = atpsyn, "clust_306" = atpsyn, "clust_1846" = atpsyn, "clust_129" = "RuBisCO", "clust_816" = "RuBisCO", "clust_3167" = "MetE", "clust_120" = "MetH", "clust_3290" = "CBA1", "clust_9740" = "ISIPs", "clust_343" = "ISIPs", "clust_1814" = "ISIPs", "clust_1154" = "ISIPs", "clust_991" = "Nitrate Transporter", "clust_411" = "Nitrate Reductase", "clust_1816" = "Nitrite Reductase", "clust_2277" = "Nitrite Transporter", "clust_589" = "GOGAT", "clust_284" = "GOGAT", "clust_891" = "GOGAT", "clust_15657" = "Ferritin","clust_4956" = "Nitric Oxide Dioxygenase", 
+#ribosomes:
+"clust_6089" = rib, "clust_7529" = rib,  "clust_2658" = rib, "clust_557" = rib, "clust_3360" = rib, "clust_35"=rib, "clust_3360" = rib, "clust_15652"=rib,  "clust_10606" = rib, "clust_1"=rib, "clust_550" =rib, "clust_1"=rib, "clust_4298" = rib,  "clust_4298" = rib,  "clust_823" = rib, "clust_6713" = rib,  "clust_444"=rib,  "clust_22"=rib,  "clust_219" = rib, "clust_4251"=rib ,"clust_5230" = rib,  "clust_7451" = rib )
+
+
+cluster_dataset$clustercompartment <- categorymap_cluster[cluster_dataset$cluster]
+
+
+
+clustername_vs_foldchange_group(cluster_dataset,"Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", "Fe_vs_noFe")
+
+
+clustername_vs_foldchange_group(cluster_dataset, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "hightemp_vs_lowtemp")
 
 
 
 ```
+
+
+heatmaps for diagram
+```{r}
+PSII_LHC <- dplyr::filter(pseudo_ORF, grepl("clust_332 |clust_1236 |clust_80 |clust_402 |clust_1044 |clust_3282 |clust_1194 |clust_58632 |clust_19392 |clust_3219 |clust_1084 |clust_3551 |clust_646 |clust_1938 " , name))
+heatmap_unclustered(PSII_LHC, "clust")
+
+PSI_LHC <- dplyr::filter(frag_ORF, grepl("clust_2549 |clust_3551 " , name))
+
+
+# Lhcr: clust_3219 clust_1084 clust_3551 clust_646  clust_1938
+# Lhcx: clust_1787 clust_712  clust_2256 clust_3363
+# Lhca : 
+
+
+
+Rubisco <- dplyr::filter(pseudo_MCL, grepl("clust_129 |clust_816 |Rubisco", name))
+
+Rubisco_large <- dplyr::filter(Rubisco, grepl("large|Large", name))
+
+heatmap_unclustered_mean(Rubisco, "clust")
+
+```
+
+
+LHC sequences for Bev
+```{r}
+all_LHCs <- dplyr::filter(pseudo_frag_ORF, grepl("Lhcx|Lhcf|Lhcr|Lhca|clust_332 |clust_1236 |clust_80 |clust_402 |clust_1044 |clust_3282 |clust_1194 |clust_3219 |clust_1084 |clust_3551 |clust_646 |clust_1938 |clust_2549 |clust_3551 |clust_1787 |clust_712 |clust_2256 |clust_3363 ", name))
+
+x <- all_LHCs$name
+y <- gsub("(.*);.*", "\\1", x)
+all_LHCs$shortname <- y
+
+
+
+volcanoplot_interactive(all_LHCs, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_rhodopsin_ORFs_alldiatoms")
+
+
+
+volcanoplot_interactive(all_LHCs, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "temp_6C_vs_0C_rhodopsin_ORFs_alldiatoms")
+
+
+
+all_diatom_fasta <- read.csv ("all_diatom_fasta.csv")
+
+
+lhc_fasta <- dplyr::filter(all_diatom_fasta, grepl(paste(all_LHCs$orf_id,collapse = "|"), orf_id))
+
+
+
+
+write.csv(lhc_fasta, "all_Lhcs_fasta.csv")
+
+write.csv(all_LHCs, "all_Lhcs_DE.csv")
+
+
+LHCFASTA <- read.csv("TFG_LHCs_FASTA.csv")
+
+write.fasta (sequences = (as.list(LHCFASTA$AA_sequence)), names = LHCFASTA$name_id ,file.out = "TFG_LHCsequences.fasta")
+
+
+```
+
+
+
+
+How the FASTA file was converted into DF
+```{r}
+# read.fast(ldlld )
+# x<- merge(FASTA, all_diatoms_ORF, by = 'orf_id')
+# tree_sub <- merge(tree, clust_231, by = "orf_id" )
+# x$Names <- paste(x$Taxa.group,"_",x$orf_id,x$cluster, sep = "")
+# 
+# x <- x[c("Names", "AA_sequence")]
+# names(x)<- c("orf_id", "AA_sequence")
+# 
+ write.csv(all_diatom_fasta, "all_diatom_fasta.csv")
+    
+```
+
+
+
+```{r}
+
+all_diatom_fasta <- read.csv ("all_diatom_fasta.csv")
+
+rhodopsin <- dplyr::filter (all_diatoms_ORF, grepl("clust_1548 ", name))
+
+
+rhodopsin_Fe <- subset (rhodopsin,(rhodopsin$Fe_vs_noFe_pvalue <0.05 & rhodopsin$temp_6C_vs_0C_pvalue <0.05))
+
+rhodopsin_temp <- subset (rhodopsin,(rhodopsin$temp_6C_vs_0C_pvalue <0.05))
+
+rhodopsin_inter <- subset (rhodopsin,(rhodopsin$int_fe_temp_6C_vs_0C_pvalue <0.05))
+
+
+
+
+rhodopsin_fasta <- dplyr::filter(all_diatom_fasta, grepl(paste(rhodopsin$orf_id,collapse = "|"), orf_id))
+
+write.fasta (sequences = (as.list(rhodopsin_fasta$AA_sequence)), names = rhodopsin_fasta$orf_id ,file.out = "rhodopsin.fasta")
+
+```
+
+
+
+
+
+```{r}
+
+
+photosynthesis <- dplyr::filter (pseudo_frag_MCL, grepl('clust_5047 |carbonic anhydr', name))
+
+
+volcanoplot_interactive(photosynthesis, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_rhodopsin_ORFs_alldiatoms")
+
+
+volcanoplot_interactive(photosynthesis, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "temp_6C_vs_0C_Mn-CA")
+
+
+volcanoplot_interactive(photosynthesis,"int_fe_temp_6C_vs_0C_foldchange", "int_fe_temp_6C_vs_0C_pvalue", " tempfe_interaction")
+
+
+Temp_De_significant <- subset (photosynthesis, temp_6C_vs_0C_pvalue < 0.05 | temp_3C_vs_0C_pvalue < 0.05) 
+
+Fe_De_significant <- subset (photosynthesis, Fe_vs_noFe_pvalue < 0.05)
+
+TempFe_De_significant <- subset (photosynthesis, int_fe_temp_6C_vs_0C_pvalue < 0.05 | int_fe_temp_3C_vs_0C_pvalue)
+
+Temp_De_significant_sub <- Temp_De_significant [c(4:21)]
+
+Fe_De_significant_sub <- Fe_De_significant[c(4:21)]
+TempFe_De_significant_sub <- TempFe_De_significant[c(4:21)]
+
+
+#Fe_De_significant <- subset(photosynthesis_sub_Fe, temp_6C_vs_0C_pvalue <= 0.05)
+
+#Fe_De_significant_sub <- Fe_De_significant [-c(19,20)]
+
+  
+
+
+Temp_De_significant_sub_1 <-  colSums(Temp_De_significant_sub  [1:18]) %>% data.frame
+rownames(Temp_De_significant_sub_1) <- c("A_noFe_0", "B_noFe_0", "C_noFe_0", "A_Fe_0", "B_Fe_0", "C_Fe_0", "A_noFe_3", "B_noFe_3", "C_noFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_noFe_6", "B_noFe_6", "C_noFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+
+
+Fe_De_significant_sub1<-  colSums(Fe_De_significant_sub[1:18]) %>% data.frame
+rownames(Fe_De_significant_sub1) <- c("A_noFe_0", "B_noFe_0", "C_noFe_0", "A_Fe_0", "B_Fe_0", "C_Fe_0", "A_noFe_3", "B_noFe_3", "C_noFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_noFe_6", "B_noFe_6", "C_noFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+
+
+TempFe_De_significant_sub1<-  colSums(TempFe_De_significant_sub [1:18]) %>% data.frame
+rownames(TempFe_De_significant_sub1) <- c("A_noFe_0", "B_noFe_0", "C_noFe_0", "A_Fe_0", "B_Fe_0", "C_Fe_0", "A_noFe_3", "B_noFe_3", "C_noFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_noFe_6", "B_noFe_6", "C_noFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+
+Fe_De_colsums<- data.frame (treatment = row.names (Fe_De_colsums), Fe_De_colsums)
+rownames(Fe_De_colsums) <- c()
+
+#frag_ORF_sums <- separate(frag_ORF_sums, col = treatment, into = c("Rep", "Fe", "temperature"))
+#names(frag_ORF_sums) <- c( "Rep", "Fe", "Temperature", "ORFtotal")
+```
+
+
 
