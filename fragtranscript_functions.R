@@ -74,7 +74,8 @@ heatmap <- function (dataset, proteinname){
              cexCol =1,
              margins = c(8,20),
              scale = "row",
-             keysize = 1)
+             keysize = 1,
+             Colv=TRUE)
   
 
 }
@@ -107,9 +108,34 @@ heatmap_unclustered <- function (dataset, proteinname){
              scale = "row" ,
              dendrogram = 'none',  
              Colv = FALSE, 
-             Rowv = TRUE,
-             keysize = 1)
-            }
+             Rowv = FALSE,
+             keysize = 1, 
+             colsep=c(3,6,9,12,15), 
+             sepcolor = "black", 
+             sepwidth = (0.01))
+}
+
+
+# 
+# heatmap_unclustered <- function (dataset, proteinname){
+#   group <- dplyr::filter (dataset, grepl(proteinname, name))
+#   group <- group [c(3:21)]
+#   names(group)<- c("name", "A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+#   group <- data.frame(group[,-1], row.names = group [,1])
+#   group <- as.matrix ((group))
+#   heatmap.2 (group, 
+#              trace = "none",
+#              density = "none", 
+#              col = bluered(100),
+#              cexRow = 0.5, 
+#              cexCol =1,
+#              margins = c(8,20),
+#              scale = "row" ,
+#              dendrogram = 'none',  
+#              Colv = FALSE, 
+#              Rowv = TRUE,
+#              keysize = 1)
+# }
 ###``````````````````````````````````````````````````````````````###
 
 
@@ -179,14 +205,37 @@ heatmap_unclustered_mean <- function  (dataset, proteinname){
              margins = c(6,20),
              scale = "row", 
              dendrogram = 'none',  
-             keysize = 1
+             keysize = 1, 
+             Colv=FALSE,
+             Rowv = FALSE
   )
   
 }
 
 
 
-
+heatmap_unclustered <- function (dataset, proteinname){
+  group <- dplyr::filter (dataset, grepl(proteinname, name))
+  group <- group [c(3:21)]
+  names(group)<- c("name", "A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+  group <- data.frame(group[,-1], row.names = group [,1])
+  group <- as.matrix ((group))
+  heatmap.2 (group, 
+             trace = "none",
+             density = "none", 
+             col = bluered(100),
+             cexRow = 0.5, 
+             cexCol =1,
+             margins = c(8,20),
+             scale = "row" ,
+             dendrogram = 'none',  
+             Colv = FALSE, 
+             Rowv = FALSE,
+             keysize = 1,
+             colsep=c(3,6,9,12,15),
+             sepcolor = "black",
+             sepwidth = c(0.02, 0.02))
+}
 
 
 
