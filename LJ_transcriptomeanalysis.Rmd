@@ -79,6 +79,8 @@ Look at overall general trends in the ORF data.
 Important note: Let's say we're looking at Fe_vs_noFe, if the fold change is positive, it means that there was more of that transcript under Fe than noFe. If the fold change is negative, it means there was more of the ORF in the noFe. From Scott: "For that scenario, it means that there was upregulation of ORF x under high iron compared to low iron.
 In general, I've kept the notation as X_vx_Y meaning X - Y (ORFs). If X has higher expression than Y, DE = 1 and FC is positive."
 
+
+
 Number of DE transcrips  
 ```{r}
 #make pie chart showing percentage of reads assigned to each diatom taxon
@@ -97,31 +99,10 @@ pie(slices,labels = lbls, col=gray.colors(length(lbls)),
 ##........................##
 ```
 
-png("FevsnoFe_cluster.png", width=23*0.75, height=23*0.75, units="cm", res=900)
-dev.off()
-
-
 Ven diagram to look at numbers of DE transcripts in diatoms
 ```{r}
 #functions from the venndiagram package to make diagrams
 ## note: this only looks at the clusters that are found across all three groups. i.e. if cluster x is only found in frag and pseudonitzchia, it is not plotted here.
-# Y <- matrix(rnorm(100*6),100,6)
-# Y[1:10,3:4] <- Y[1:10,3:4]+3
-# Y[1:20,5:6] <- Y[1:20,5:6]+3
-# design <- cbind(1,c(0,0,1,1,0,0),c(0,0,0,0,1,1))
-# fit <- eBayes(lmFit(Y,design))
-# results <- decideTests(fit)
-# a <- vennCounts(results)
-# print(a)
-# mfrow.old <- par()$mfrow
-# par(mfrow=c(1,2))
-# vennDiagram(a)
-# vennDiagram(results, 
-#     include=c("up", "down"),
-#     counts.col=c("red", "blue"),
-#     circle.col = c("red", "blue", "green3"))
-# par(mfrow=mfrow.old)
-
 
 #Iron effect
 ven_alldiatoms <-all_MCL [,c(47,48, 141, 142)]
@@ -136,7 +117,7 @@ ven_alldiatoms_sub <- dcast(ven_alldiatoms, cluster ~ Taxa.group, value.var = "D
 ven_alldiatoms_sub <- data.frame(ven_alldiatoms_sub[,-1], row.names = ven_alldiatoms_sub [,1])
 ven_alldiatoms_sub [is.na(ven_alldiatoms_sub)] <- 0
 
-#png("venndiagram_alldiatoms_clusters_iron.png", width=23*0.75, height=23*0.75, units="cm", res=900)
+
 
 #countFe <- vennCounts(ven_alldiatoms_sub)
 vennDiagram(ven_alldiatoms_sub, 
@@ -146,11 +127,7 @@ vennDiagram(ven_alldiatoms_sub,
             counts.col=c("red", "blue"),
            main = "Iron")
           # main.cex = 2)
-           #circle.col=c("black", "red", "blue"))
-
-#dev.off()
-
-
+           #circle.col=c("black", "red", "blue")
 ......................
 #Temperature effect
 ven_alldiatoms <-all_MCL [,c(47,48, 143, 144)]
@@ -165,7 +142,6 @@ ven_alldiatoms_sub <- dcast(ven_alldiatoms, cluster ~ Taxa.group, value.var = "D
 ven_alldiatoms_sub <- data.frame(ven_alldiatoms_sub[,-1], row.names = ven_alldiatoms_sub [,1])
 ven_alldiatoms_sub [is.na(ven_alldiatoms_sub)] <- 0
 
-#png("venndiagram_alldiatoms_clusters_temperature.png", width=23*0.75, height=23*0.75, units="cm", res=900)
 
 countFe <- vennCounts(ven_alldiatoms_sub)
 vennDiagram(ven_alldiatoms_sub, 
@@ -175,9 +151,6 @@ vennDiagram(ven_alldiatoms_sub,
             counts.col=c("red", "blue"),
            main = "Temp")
            #circle.col=c("black", "red", "blue"))
-
-#dev.off()
-
 .................................
 #IronxTemperature effect
 ven_alldiatoms <-all_MCL [,c(47,48, 145, 146)]
@@ -192,8 +165,6 @@ ven_alldiatoms_sub <- dcast(ven_alldiatoms, cluster ~ Taxa.group, value.var = "D
 ven_alldiatoms_sub <- data.frame(ven_alldiatoms_sub[,-1], row.names = ven_alldiatoms_sub [,1])
 ven_alldiatoms_sub [is.na(ven_alldiatoms_sub)] <- 0
 
-#png("venndiagram_alldiatoms_clusters_tempXiron.png", width=23*0.75, height=23*0.75, units="cm", res=900)
-
 countFe <- vennCounts(ven_alldiatoms_sub)
 vennDiagram(ven_alldiatoms_sub, 
             include = c ("up", "down"),
@@ -202,8 +173,6 @@ vennDiagram(ven_alldiatoms_sub,
             counts.col=c("red", "blue"),
            main = "Iron temp")
            #circle.col=c("black", "red", "blue"))
-
-#dev.off()
 
 ```
 
