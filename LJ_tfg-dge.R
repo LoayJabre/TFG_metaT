@@ -10,6 +10,8 @@ library(reshape2)
 library(tidyverse)
 library(edgeR)
 library(gridExtra)
+library(statmod)
+
 
 # load group normalized data
 #LJ can also do this for MCL data.. Import the MCL data, combine the cluster# and taxa to make clusters unique
@@ -20,6 +22,7 @@ library(gridExtra)
 
 grp_norm <- read.csv("annotation_allTFG.grpnorm_mmetsp_fc_pn_reclassified.edgeR.csv")
 
+grp_norm <- dplyr::filter (grp_norm, grepl('Pseudo-nit|Fragilariopsis',grpnorm_taxgrp))
 
 
 # read in experiment key with associated treatments
@@ -37,12 +40,20 @@ grp_norm_sub <- grp_norm %>% dplyr::select('orf_id',# 'group',
                                            'TFG_t5_9A', 'TFG_t5_9B', 'TFG_t5_9C', 'TFG_t0_A', 
                                            'TFG_t0_B', 'TFG_t0_C')
 
+#LJ -subset only frag and pseudo-nit. this is only for tfg paper that I'm doing. 
+#grp_norm_sub <- dplyr::filter (grp_norm_sub, grepl('Pseudo-nit|Fragilariopsis',grpnorm_taxgrp))
+
+
 grp_norm_sub_not0 <- grp_norm %>% dplyr::select('orf_id',# 'group', 
                                            'grpnorm_taxgrp', 'TFG_t5_1A', 'TFG_t5_1B', 'TFG_t5_1C', 
                                            'TFG_t5_3A', 'TFG_t5_3B', 'TFG_t5_3C', 'TFG_t5_4A', 
                                            'TFG_t5_4B', 'TFG_t5_4C', 'TFG_t5_6A', 'TFG_t5_6B', 
                                            'TFG_t5_6C', 'TFG_t5_7A', 'TFG_t5_7B', 'TFG_t5_7C', 
                                            'TFG_t5_9A', 'TFG_t5_9B', 'TFG_t5_9C')
+
+
+
+
 
 # change the row names to be the ORF ID
 rownames(grp_norm_sub) <- grp_norm_sub$orf_id
@@ -422,7 +433,7 @@ tfg_fetemp6 <- glmQLFTest(tfg_fit_contin, coef = 6)
 #           fetemp_pos_de = ifelse((tfg_fetemp3_decide == 1 | tfg_fetemp6_decide == 1) & 
 #                                  (tfg_fetemp3_decide != -1 | tfg_fetemp6_decide!= -1), yes = 1, no = 0) %>% as.vector())
 
-write.csv(tfg_de_df, file = 'LJ_tfg_de_annotation_allTFG.grpnorm_mmetsp_fc_pn_reclassified.csv')
+write.csv(tfg_de_df, file = 'tfg_de_annotation_frag_pseudoTFG.grpnorm_mmetsp_fc_pn_reclassified.csv')
 
 ### plotting de results by taxon
 
@@ -564,13 +575,17 @@ library(reshape2)
 library(tidyverse)
 library(edgeR)
 library(gridExtra)
+library(statmod)
 
 # load group normalized data
 #LJ can also do this for MCL data.. Import the MCL data, combine the cluster# and taxa to make clusters unique
 #then change the name of the taxa.group column to grpnorm_taxgrp to fit in with the rest of this code. 
-grp_norm <- read.csv("allMCL.csv")
+grp_norm <- read.csv("annotation_allTFG.grpnorm_mmetsp_fc_pn_reclassified.summarygrouped_cluster.edgeR.csv")
 grp_norm$orf_id <- paste (grp_norm$cluster, grp_norm$Taxa.group)
 colnames(grp_norm)[1] <- "grpnorm_taxgrp"
+
+
+grp_norm <- dplyr::filter (grp_norm, grepl('Pseudo-nit|Fragilariopsis',grpnorm_taxgrp))
 
 #grp_norm <- read.csv("annotation_allTFG.grpnorm_mmetsp_fc_pn_reclassified.edgeR.csv")
 
@@ -971,7 +986,7 @@ tfg_fetemp6 <- glmQLFTest(tfg_fit_contin, coef = 6)
 #           fetemp_pos_de = ifelse((tfg_fetemp3_decide == 1 | tfg_fetemp6_decide == 1) & 
 #                                  (tfg_fetemp3_decide != -1 | tfg_fetemp6_decide!= -1), yes = 1, no = 0) %>% as.vector())
 
-write.csv(tfg_de_df, file = 'LJ_MCL_tfg_de_annotation_allTFG.grpnorm_mmetsp_fc_pn_reclassified.csv')
+write.csv(tfg_de_df, file = "MCL_tfg_de_annotation_frag-pseudo_allTFG_grpnorm_mmetsp_fc_pn_reclassified.csv")
 
 ### plotting de results by taxon
 

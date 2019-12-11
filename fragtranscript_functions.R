@@ -138,8 +138,6 @@ heatmap_unclustered <- function (dataset, proteinname){
 # }
 ###``````````````````````````````````````````````````````````````###
 
-
-
 heatmap_mean <- function  (dataset, proteinname){
   group <- dplyr::filter (dataset, grepl(proteinname, name))
   group <- group [c(3:21)]
@@ -176,7 +174,7 @@ heatmap_mean <- function  (dataset, proteinname){
 
 
 
-
+#----------------------------------------#
 
 
 heatmap_unclustered_mean <- function  (dataset, proteinname){
@@ -212,7 +210,7 @@ heatmap_unclustered_mean <- function  (dataset, proteinname){
   
 }
 
-
+#-----------------------------------------
 
 heatmap_unclustered <- function (dataset, proteinname){
   group <- dplyr::filter (dataset, grepl(proteinname, name))
@@ -441,7 +439,7 @@ volcanoplot_interactive <- function(dataset, Fold, FDR, volcanontitle){
   y <- list (title = "-Log10_P-value")
  # ax<- list(showline = TRUE, zeroline=FALSE, linecolor = toRGB("black"),
             #linewidth = 6)
-  plot_ly(data = volcano, x = volcano$Fold, y = -log10(volcano$FDR), text = volcano$gene, mode = "markers", symbol = volcano$taxa)%>% #size = volcano$size )%>% 
+  plot_ly(data = volcano, x = volcano$Fold, y = -log10(volcano$FDR), text = volcano$gene, mode = "markers", symbol = volcano$taxa, size = volcano$size)%>% #size = volcano$size )%>% 
     layout(title = volcanontitle)%>%
     layout (xaxis = x, yaxis = y)%>%
     layout(shapes = list(vline (-1), vline(1), hline(1.301)))
