@@ -60,8 +60,9 @@ MCLclusterrawplot <- function(whichdata, whichprotein, graphtitle){
 #dataset = which dataset we are using (typically one that has been cleaned)
 #proteinname = whatever proteins we want to use
 
-heatmap <- function (dataset, proteinname){
-  group <- dplyr::filter (dataset, grepl(proteinname, name))
+heatmap <- function (dataset, title, proteinname){
+  heatmaptitle <- title
+  group <- dplyr::filter (dataset, grepl(proteinname,  name))
   group <- group [c(3:21)]
   names(group)<- c("name", "A_noFe_0", "B_noFe_0", "C_noFe_0", "A_Fe_0", "B_Fe_0", "C_Fe_0", "A_noFe_3", "B_noFe_3", "C_noFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_noFe_6", "B_noFe_6", "C_noFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
   group <- data.frame(group[,-1], row.names = group [,1])
@@ -75,6 +76,7 @@ heatmap <- function (dataset, proteinname){
              margins = c(8,20),
              scale = "row",
              keysize = 1,
+             main = heatmaptitle,
              Colv=TRUE)
   
 
@@ -92,28 +94,28 @@ heatmap <- function (dataset, proteinname){
 #dataset = which dataset we are using (typically one that has been cleaned)
 #proteinname = whatever proteins we want to use
 
-heatmap_unclustered <- function (dataset, proteinname){
-  group <- dplyr::filter (dataset, grepl(proteinname, name))
-  group <- group [c(3:21)]
-  names(group)<- c("name", "A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
-  group <- data.frame(group[,-1], row.names = group [,1])
-  group <- as.matrix ((group))
-  heatmap.2 (group, 
-             trace = "none",
-             density = "none", 
-             col = bluered(100),
-             cexRow = 0.5, 
-             cexCol =1,
-             margins = c(8,20),
-             scale = "row" ,
-             dendrogram = 'none',  
-             Colv = FALSE, 
-             Rowv = FALSE,
-             keysize = 1, 
-             colsep=c(3,6,9,12,15), 
-             sepcolor = "black", 
-             sepwidth = (0.01))
-}
+# heatmap_unclustered <- function (dataset, proteinname){
+#   group <- dplyr::filter (dataset, grepl(proteinname, name))
+#   group <- group [c(3:21)]
+#   names(group)<- c("name", "A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+#   group <- data.frame(group[,-1], row.names = group [,1])
+#   group <- as.matrix ((group))
+#   heatmap.2 (group, 
+#              trace = "none",
+#              density = "none", 
+#              col = bluered(100),
+#              cexRow = 0.5, 
+#              cexCol =1,
+#              margins = c(8,20),
+#              scale = "row" ,
+#              dendrogram = 'none',  
+#              Colv = FALSE, 
+#              Rowv = FALSE,
+#              keysize = 1, 
+#              colsep=c(3,6,9,12,15), 
+#              sepcolor = "black", 
+#              sepwidth = (0.01))
+# }
 
 
 # 
@@ -175,8 +177,6 @@ heatmap_mean <- function  (dataset, proteinname){
 
 
 #----------------------------------------#
-
-
 heatmap_unclustered_mean <- function  (dataset, proteinname){
   group <- dplyr::filter (dataset, grepl(proteinname, name))
   group <- group [c(3:21)]
@@ -211,8 +211,8 @@ heatmap_unclustered_mean <- function  (dataset, proteinname){
 }
 
 #-----------------------------------------
-
-heatmap_unclustered <- function (dataset, proteinname){
+heatmap_unclustered <- function (dataset, title, proteinname){
+  heatmaptitle <- title
   group <- dplyr::filter (dataset, grepl(proteinname, name))
   group <- group [c(3:21)]
   names(group)<- c("name", "A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
@@ -222,28 +222,46 @@ heatmap_unclustered <- function (dataset, proteinname){
              trace = "none",
              density = "none", 
              col = bluered(100),
-             cexRow = 0.5, 
+             cexRow = 1, #row lable font size
              cexCol =1,
              margins = c(8,20),
              scale = "row" ,
              dendrogram = 'none',  
              Colv = FALSE, 
              Rowv = FALSE,
+             main = heatmaptitle,
              keysize = 1,
              colsep=c(3,6,9,12,15),
              sepcolor = "black",
              sepwidth = c(0.02, 0.02))
 }
 
-
-
-
-
-
+###```````````````````````````````````````````````````````````````###
+heatmap_unclustered_t1 <- function(dataset, title, taxan){
+  heatmaptitle <- title
+  data <- subset (dataset, taxa == taxan)
+  data <- data[c(3:13)]
+  data <- data.frame(data[,-1], row.names = data [,1])
+  heatmap.2 (as.matrix(data), 
+             trace = "none",
+             density = "none", 
+             col = bluered(100),
+             cexRow = 1, #font of row text
+             cexCol =1,
+             margins = c(8,20),
+             scale = "row" ,
+             dendrogram = 'none',  
+             Colv = FALSE, 
+             Rowv = FALSE,
+             main = heatmaptitle,
+             keysize = 1,
+             colsep=c(1,4,6,8,10),
+             sepcolor = "black",
+             sepwidth = c(0.02, 0.02))
+  
+}
 
 ###```````````````````````````````````````````````````````````````###
-
-
 volcanoplot <- function(dataset, foldchange, FDR, graphtitle){
   volcano <- dataset[c("name",foldchange, FDR,"Taxa.group" )]
   x <- foldchange
@@ -289,7 +307,7 @@ volcanoplot <- function(dataset, foldchange, FDR, graphtitle){
   volcano [which(volcano ['FDR'] < 0.05 & abs(volcano['Fold']) > 2), "group"] <- "fold-change_significant"
   
   ggplot (data = volcano, aes(x= Fold, y=-log10(FDR), color = taxa, label=gene)) +
-    geom_point (alpha=0.5)+
+    geom_point (alpha=0.6, size = 3+(20* volcano$size))+
     scale_shape (solid=FALSE)+
     geom_hline (yintercept = 1.301, col = "blue", lty = 2, lwd=0.5 )+
     geom_vline (xintercept = c(-1,1), col = "blue", lty = 2, lwd=0.5 )+
@@ -298,7 +316,7 @@ volcanoplot <- function(dataset, foldchange, FDR, graphtitle){
     ggtitle(graphtitle)+
     theme_bw()+
     theme(plot.title = element_text(hjust = 0.5))
-    #geom_label_repel(data = subset(volcano, abs(Fold) >1 & -log10(FDR) >1.3),
+        #geom_label_repel(data = subset(volcano, abs(Fold) >1 & -log10(FDR) >1.3),
      # aes(label=gene), box.padding = 0.2, point.padding = 0.5, color= 'black', size =1)
 }
 
@@ -359,8 +377,8 @@ volcanoplot_annotated <- function(dataset, foldchange, FDR, graphtitle){
     ggtitle(graphtitle)+
     theme_bw()+
     theme(plot.title = element_text(hjust = 0.5))+
-  geom_label_repel(data = subset(volcano, abs(Fold) >1 & -log10(FDR) >1.3),
-   aes(label=gene), box.padding = 0.2, point.padding = 0.5, color= 'black', size =1)
+    geom_label_repel(data = subset(volcano, -log10(FDR) >1.3), 
+                     aes(label=gene), box.padding = 0.2, point.padding = 0.5, color= 'black', size = 1.5)
 }
 
 
@@ -439,7 +457,7 @@ volcanoplot_interactive <- function(dataset, Fold, FDR, volcanontitle){
   y <- list (title = "-Log10_P-value")
  # ax<- list(showline = TRUE, zeroline=FALSE, linecolor = toRGB("black"),
             #linewidth = 6)
-  plot_ly(data = volcano, x = volcano$Fold, y = -log10(volcano$FDR), text = volcano$gene, mode = "markers", symbol = volcano$taxa, size = volcano$size)%>% #size = volcano$size )%>% 
+  plot_ly(data = volcano, x = volcano$Fold, y = -log10(volcano$FDR), text = volcano$gene, mode = "markers", symbol = volcano$taxa, size = volcano$size)%>%  
     layout(title = volcanontitle)%>%
     layout (xaxis = x, yaxis = y)%>%
     layout(shapes = list(vline (-1), vline(1), hline(1.301)))

@@ -10,7 +10,6 @@ library(heatmap.plus)
 library(RColorBrewer)
 library(reshape2)
 library(scales)
-library(calibrate)
 library(tidyr)
 library(plotly)
 library(gsubfn)
@@ -20,21 +19,24 @@ library(htmlwidgets)
 library(VennDiagram)
 library(forcats)
 library(caroline)
-library(edgeR)
+#library(edgeR)
 library(data.table)
 library(stringi)
-
-#library(manta)
 library(seqinr)
+
 source("fragtranscript_functions.R")
+
 #library(scatterplot3d)
-#library(rgl)
+library(rgl)
+library(calibrate)
+#library(manta)
 ```
  
-
+ 
 Upload ORF  data
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 all_ORF <- read.csv("tfg_de_annotation_frag_pseudoTFG.grpnorm_mmetsp_fc_pn_reclassified.csv", header = TRUE, sep = "," )
+#all_ORF <- read.csv("tfg_de_annotation_allTFG.grpnorm_mmetsp_fc_pn_reclassified.csv", header = TRUE, sep = "," )
 colnames(all_ORF)[91] <- "Taxa.group"
 #create a 'name' column that includes all the annotations from the different libraries
 all_ORF$name <- paste(all_ORF$orf_id, all_ORF$cluster, all_ORF$kegg_desc, all_ORF$KO_desc, all_ORF$KO_pathway, all_ORF$KOG_desc, all_ORF$KOG_class, all_ORF$best_hit_annotation, all_ORF$PFams_desc, all_ORF$TIGRFams_desc)
@@ -52,8 +54,8 @@ frag_ORF <- dplyr::filter (all_ORF_sub, grepl('Fragilariopsis', Taxa.group))
 pseudo_ORF <- dplyr::filter (all_ORF_sub, grepl('Pseudo-nitzschi', Taxa.group))
 pseudo_frag_ORF <- dplyr::filter (all_ORF_sub, grepl('Pseudo-nit|Fragilariopsis',Taxa.group))
 #all_diatoms_ORF <- dplyr::filter (all_ORF_sub, grepl('Pseudo-nit|Fragilariopsis|Diatom',Taxa.group))
-
 ```
+
 
 upload MCL cluster data
 ```{r message=FALSE, warning=FALSE, include=FALSE}
@@ -67,8 +69,6 @@ frag_MCL <- dplyr::filter (all_MCL_sub, grepl('Fragilariopsis', Taxa.group))
 pseudo_MCL <- dplyr::filter (all_MCL_sub, grepl('Pseudo-nit', Taxa.group))
 pseudo_frag_MCL <- dplyr::filter (all_MCL_sub, grepl('Pseudo-nit|Fragilariopsis', Taxa.group))
 ```
-
-
 
 
 Piechart for number of DE transcrips  
@@ -112,57 +112,252 @@ pct <- round(slices/sum(slices)*100)
 lbls <- paste(lbls, pct) # add percents to labels 
 lbls <- paste(lbls,"%",sep="") # ad % to labels 
 
-png(filename="piechart_T5_6C_Fe.png",width=70, height=45, units="cm", res = 900)
+#png(filename="piechart_T5_6C_Fe.png",width=70, height=45, units="cm", res = 900)
 pie(slices,
     labels = lbls,
     col=gray.colors(length(lbls)),
     main="6C_+Fe", #title
-    cex = 4.5) #font size
+    cex = 1) #font size
  
-dev.off()
+#dev.off()
 ```
 
 
-
-
-
-
-Doing some T1 stuff
+T1_LHCs
 ```{r}
-#all_ORF_t1 <- all_ORF[,c(47, 48, 91, 178, 96,98,99,101,102,104)]
+#load the LHC annotations from BEV
+lhc_annotations <- read.csv("LHC_annotation_bev.csv", header=T)
 
-#all_MCL_t1 <- all_MCL[,c(48, 47, 148,55:59,61,62,64,65,67)]
-#all_MCL_t1 <- all_MCL[,c(48, 47, 148,55,57:59,61,62,64,65,67)] #no T0A
+#subset the ice-edge, T0 and T1 measurements. 
+all_ORF_t1 <- all_ORF [,c(47,91, 178, 92:96,98,99,101,102,104 )]
+names(all_ORF_t1) <- c("orf_id","taxa","name","ice-edge","T0_A", "T0_B", "T0_C", "T1_noFe_0","T1_Fe_0","T1_noFe_3","T1_Fe_3","T1_noFe_6","T1_Fe_6")
+
+all_MCL_t1 <- all_MCL[,c(48, 47, 148,55:59,61,62,64,65,67)] #no T0
+names(all_MCL_t1) <- c("cluster","taxa","name", "ice-edge","T0_A", "T0_B", "T0_C", "T1_noFe_0","T1_Fe_0","T1_noFe_3","T1_Fe_3","T1_noFe_6","T1_Fe_6")
+##.............................###
+
+##############LHCs##############
+
+#assign Bev's annotations to TFG LHC clusters
+#first make a map of all the LHC clusters to  manually asign them an LHC annotation
+all_MCL_t1$cluster <- as.character(all_MCL_t1$cluster)
+lhc_annotation_map <- c("clust_1044" = "LHCf_III",
+                        "clust_1084" = "LHCr", 
+                        "clust_1194" = "LHCf_I", 
+                        "clust_1236" = "LHCf_I", 
+                        "clust_1787" = "LHCx_4/6", 
+                        "clust_1938" = "LHCr", 
+                        "clust_2256" = "LHCx_1/6", 
+                        "clust_2549" = "LHCr",
+                        "clust_3219" = "LHCr", 
+                        "clust_3282" = "LHCf_II", 
+                        "clust_332"  = "LHCf_I", 
+                        "clust_3363" = "maybe-FCP5", 
+                        "clust_3551" = "LHCr", 
+                        "clust_402"  = "LHCf_I", 
+                        "clust_646"  = "LHCz",
+                        "clust_712"  = "LHCx_1", 
+                        "clust_80"   = "LHCf_I"
+                        )
+
+all_MCL_t1$lhc_annotation <- lhc_annotation_map[all_MCL_t1$cluster]
+
+#cluster heatmap
+lhc_clusters_t1 <- dplyr::filter (all_MCL_t1, grepl('light harvesting|LHC|Lhc|lhc|harvesting|clust_1044 |clust_1084 |clust_1194 |clust_1236 |clust_1787 |clust_1938 |clust_2256 |clust_2549 |clust_3219 |clust_3282 |clust_332 |clust_3363 |clust_3551 |clust_402 |clust_646 |clust_712 |clust_80 ', name))
+
+lhc_clusters_t1$annotation <- paste(lhc_clusters_t1$lhc_annotation,'-',lhc_clusters_t1$cluster)
+lhc_clusters_t1 <- lhc_clusters_t1[order(lhc_clusters_t1$annotation),]
+lhc_clusters_t1 <- lhc_clusters_t1 [c(1,2,15,4:13)]
+
+heatmap_unclustered_t1(lhc_clusters_t1, "Fragilariopsis",  "Fragilariopsis")
+heatmap_unclustered_t1(lhc_clusters_t1, "Pseudo-nitzschia", "Pseudo-nitzschia")
+
+####LHC T5####
+lhc_clusters_t5 <- dplyr::filter (frag_MCL, grepl('light harvesting|LHC|Lhc|lhc|harvesting|clust_1044 |clust_1084 |clust_1194 |clust_1236 |clust_1787 |clust_1938 |clust_2256 |clust_2549 |clust_3219 |clust_3282 |clust_332 |clust_3363 |clust_3551 |clust_402 |clust_646 |clust_712 |clust_80 ', name))
+
+lhc_clusters_t5$cluster <- as.character(lhc_clusters_t5$cluster)
+lhc_clusters_t5$lhc_annotation <- lhc_annotation_map[lhc_clusters_t5$cluster]
+lhc_clusters_t5$name <- paste(lhc_clusters_t5$lhc_annotation,'-',lhc_clusters_t5$cluster)
+lhc_clusters_t5 <- lhc_clusters_t5[order(lhc_clusters_t5$name),]
+
+heatmap_unclustered(lhc_clusters_t5, "Fragilariopsis", "C")
+
+#### LHC cluster abundance #### 
+lhc_clusters_abundance <- dplyr::filter (all_MCL, grepl('light harvesting|LHC|Lhc|lhc|harvesting|clust_1044 |clust_1084 |clust_1194 |clust_1236 |clust_1787 |clust_1938 |clust_2256 |clust_2549 |clust_3219 |clust_3282 |clust_332 |clust_3363 |clust_3551 |clust_402 |clust_646 |clust_712 |clust_80 ', name)) 
+
+lhc_clusters_abundance <- lhc_clusters_abundance [c(48, 47,92 )]
+lhc_clusters_abundance$cluster <- as.character(lhc_clusters_abundance$cluster)
+lhc_clusters_abundance$lhc_annotation <- lhc_annotation_map[lhc_clusters_abundance$cluster]
+lhc_clusters_abundance$name <- paste(lhc_clusters_abundance$lhc_annotation,'-',lhc_clusters_abundance$cluster)
+
+#lhc_clusters_abundance <- lhc_clusters_abundance[order(lhc_clusters_abundance$name),]
+
+#lhc_clusters_abundance <- lhc_clusters_abundance[order(lhc_clusters_abundance$total_reads),]
+
+lhc_clusters_abundance <- lhc_clusters_abundance[with(lhc_clusters_abundance, order(name, total_reads)),]
+
+ggplot (data = subset (lhc_clusters_abundance, Taxa.group == c( "Fragilariopsis" )), aes(x = total_reads, y = reorder(name, desc(name)), group = Taxa.group ))+
+  geom_point(size = 5)+
+  scale_x_log10()+
+  theme_bw()+
+  ylab("")+
+  xlab ("Relative Abundance")+
+  theme(axis.text.x=element_text(face = "bold", size = 20, color = "black"),
+         axis.title.x=element_text(size=28,face="bold", color = "black"), 
+         axis.text.y=element_text(face = "bold", size = 20, color = "black"),
+         strip.background =element_rect(fill="white"))+
+  facet_grid( Taxa.group ~.)
 
 
-all_MCL_t1 <- all_MCL[,c(48, 47, 148,55,59,61,62,64,65,67)] #no T0
+
+###T1 and T5 LHCs together####
+LHC_t1_t5 <- dplyr::filter (all_MCL, grepl("light harvesting|LHC|Lhc|lhc|harvesting|clust_1044 |clust_1084 |clust_1194 |clust_1236 |clust_1787 |clust_1938 |clust_2256 |clust_2549 |clust_3219 |clust_3282 |clust_332 |clust_3363 |clust_3551 |clust_402 |clust_646 |clust_712 |clust_80 ", name))
+LHC_t1_t5_v2 <- LHC_t1_t5[c(47, 48, 55:59,61,62,64,65,67, 74:91)]
+
+names(LHC_t1_t5_v2) <- c("Taxa", "cluster", "ice-edge","T0_A", "T0_B", "T0_C", "T1_noFe_0","T1_Fe_0","T1_noFe_3","T1_Fe_3","T1_noFe_6","T1_Fe_6","A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6" )
+
+Frag_LHCs <- dplyr::filter(LHC_t1_t5_v2, grepl("Pseudo-nitzschia", Taxa))
+
+Frag_LHCs$cluster <- as.character(Frag_LHCs$cluster)
+Frag_LHCs$lhc_annotation <- lhc_annotation_map[Frag_LHCs$cluster]
+Frag_LHCs$name <- paste(Frag_LHCs$lhc_annotation,'-',Frag_LHCs$cluster)
+Frag_LHCs <- Frag_LHCs[order(Frag_LHCs$name),]
+Frag_LHCs_2 <- Frag_LHCs[c(32,3:30)]
+
+Frag_LHCs_2 <- data.frame(Frag_LHCs_2[,-1], row.names = Frag_LHCs_2 [,1])
+
+heatmap.2 (as.matrix(Frag_LHCs_2), 
+             trace = "none",
+             density = "none", 
+             col = bluered(100),
+             #breaks = seq(-1,1, length.out = 101),
+          # symbreaks = FALSE,#changes the scale of the color key
+             cexRow = 0.5, 
+             cexCol =1,
+             margins = c(8,20),
+             scale = "row" ,
+             dendrogram = 'none',  
+             Colv = FALSE, 
+             Rowv = FALSE,
+             keysize = 1,
+             colsep=c(1,4,6,8,10,13,16,19,22,25),
+             sepcolor = "black",
+             sepwidth = c(0.02, 0.02))
 
 
-names(all_MCL_t1) <- c("cluster","taxa", "clustername","ice-edge", "T1_noFe_0","T1_Fe_0","T1_noFe_3","T1_Fe_3","T1_noFe_6","T1_Fe_6")
 
-all_MCL_t1_frag <- dplyr::filter (all_MCL_t1, grepl('Fragila', taxa))
 
-#then let's do a heatmap for some photosynthetic stuff 
 
-#light harvesintg
-light_harvesting_t1 <- dplyr::filter (all_MCL_t1_frag, grepl('light harvesting|LHC|Lhc|lhc|harvesting|clust_332 |clust_1236 |clust_80 |clust_402 |clust_1044 |clust_3282 |clust_1194 |clust_3219 |clust_1084 |clust_646 |clust_1938', clustername))
+###T1 and T5 LHCs together_V2####
 
-#Plastocy
-#light_harvesting_t1 <- dplyr::filter (all_MCL_t1_frag, grepl('clust_1820 ', clustername))
 
-#light_harvesting_t1 <- dplyr::filter (all_MCL_t1_frag, grepl('ISIP|isip|Isip|clust_9740 |clust_343 |clust_1814 |clust_1154 ', clustername))
+LHC_t1_t5 <- dplyr::filter (all_MCL, grepl("light harvesting|LHC|Lhc|lhc|harvesting|clust_1044 |clust_1084 |clust_1194 |clust_1236 |clust_1787 |clust_1938 |clust_2256 |clust_2549 |clust_1820 |clust_3219 |clust_3282 |clust_332 |clust_3363 |clust_3551 |clust_402 |clust_646 |clust_712 |clust_80 ", name))
+LHC_t1_t5_v2 <- LHC_t1_t5[c(148,55:59,61,62,64,65,67, 74:91)]
 
-#light_harvesting_t1 <- dplyr::filter (all_MCL_t1_frag, grepl('cold|Cold', clustername))
+names(LHC_t1_t5_v2) <- c("cluster", "ice-edge","T0_A", "T0_B", "T0_C", "T1_noFe_0","T1_Fe_0","T1_noFe_3","T1_Fe_3","T1_noFe_6","T1_Fe_6","A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6" )
 
-#light_harvesting_t1 <- dplyr::filter (all_ORF_t1_frag, grepl('ammonium', name))
+LHC_t1_t5_v2 <- data.frame(LHC_t1_t5_v2[,-1], row.names = LHC_t1_t5_v2 [,1])
 
-light_harvesting_t1 <- light_harvesting_t1[c(3:10)]
-light_harvesting_t1 <- data.frame(light_harvesting_t1[,-1], row.names = light_harvesting_t1 [,1])
+heatmap.2 (as.matrix(LHC_t1_t5_v2), 
+             trace = "none",
+             density = "none", 
+             col = bluered(100),
+             cexRow = 0.5, 
+             cexCol =1,
+             margins = c(8,20),
+             scale = "row" ,
+             dendrogram = 'none',  
+             Colv = FALSE, 
+             Rowv = FALSE,
+             keysize = 1,
+             colsep=c(1,4,6,8,10,13,16,19,22,25),
+             sepcolor = "black",
+             sepwidth = c(0.02, 0.02))
 
-light_harvesting_t1 <- as.matrix ((light_harvesting_t1))
 
-#then you're ready to plot your heatmap!
-  heatmap.2 (light_harvesting_t1, 
+
+
+
+###############
+#lhcx clusters that are mixed up. 
+lhc_orfs_t5 <- merge(lhc_annotations, pseudo_frag_ORF, by = c("orf_id"))
+lhcx1_bev_t5 <- dplyr::filter (lhc_orfs_t5, grepl('Lhcx6', Type))
+lhcx1_bev_t5 <- lhcx1_bev_t5[c(1, 11:61)]
+heatmap(lhcx1_bev_t5, "clust")
+
+
+volcanoplot_interactive(lhcx1_bev_t5, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", "lhcx1_Fe")
+
+volcanoplot_interactive(lhcx1_bev_t5, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "lhcx1_temp")
+
+volcanoplot_interactive(lhcx1_bev_t5, "int_fe_temp_6C_vs_0C_foldchange", "int_fe_temp_6C_vs_0C_pvalue", "pcyn_temp")
+
+lhc_orfs_t1 <- merge(lhc_annotations, all_ORF_t1, by = c ("orf_id", "taxa" ))
+lhc_orfs_t1 <- lhc_orfs_t1[c(1,2,6,12:21)]
+lhcx1_bev <- dplyr::filter (lhc_orfs_t1, grepl('Lhcx6', Type))
+lhcx1_bev <- lhcx1_bev [c(1,4:13)]
+lhcx1_bev<- data.frame(lhcx1_bev[,-1], row.names = lhcx1_bev [,1])
+
+heatmap.2 (as.matrix (lhcx1_bev), 
+             trace = "none",
+             density = "none", 
+             col = bluered(100),
+             cexRow = 0.5, 
+             cexCol =1,
+             margins = c(8,20),
+             scale = "row" ,
+             dendrogram = 'none',  
+             Colv = FALSE, 
+             Rowv = FALSE,
+             keysize = 1,
+             main = "LHC_X_6",
+             colsep=c(1,4,6,8,10),
+             sepcolor = "black",
+             sepwidth = c(0.02, 0.02))
+
+
+
+lhcx1_6 <- dplyr::filter (pseudo_frag_ORF, grepl('clust_2256 ', name))
+lhcx1_6<- lhcx1_6[order(lhcx1_6$Taxa.group),]
+heatmap_unclustered(lhcx1_6, "LHCx_1/6", "clust")
+
+lhcx1_6_t1 <- dplyr::filter (all_ORF_t1, grepl('clust_2256 ', name))
+lhcx1_6_t1<- lhcx1_6_t1[order(lhcx1_6_t1$taxa),]
+
+heatmap_unclustered_t1(lhcx1_6_t1, "LHCx_1/6", "Fragilariopsis")
+
+
+
+##LHC volcano T5
+lhc_volcano_t5 <- dplyr::filter(pseudo_frag_MCL, grepl('light harvesting|LHC|Lhc|lhc|harvesting|clust_1044 |clust_1084 |clust_1194 |clust_1236 |clust_1787 |clust_1938 |clust_2256 |clust_2549 |clust_3219 |clust_3282 |clust_332 |clust_3363 |clust_3551 |clust_402 |clust_646 |clust_712 |clust_80 ', name))
+
+
+volcanoplot_interactive(lhc_volcano_t5, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", "pcyn_Fe")
+volcanoplot_interactive(lhc_volcano_t5, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "pcyn_temp")
+
+volcanoplot_interactive(lhc_volcano_t5, "int_fe_temp_6C_vs_0C_foldchange", "int_fe_temp_6C_vs_0C_pvalue", "pcyn_temp")
+
+
+
+########################################################
+########################################################
+########################################################
+
+##Plastocyanin###
+#Volcanoplot
+pcyn_volcano <- dplyr::filter(all_ORF_sub, grepl('clust_1820 ', name))
+
+volcanoplot_interactive(pcyn_volcano, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", "pcyn_Fe")
+volcanoplot_interactive(pcyn_volcano, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "pcyn_temp")
+
+#ORF heatmap
+pcyn <- subset (all_ORF_t1, cluster == "clust_1820")
+pcyn_frag <- subset (pcyn, taxa == "Fragilariopsis")
+pcyn_frag <- pcyn_frag [c(1, 4:13)]
+pcyn_frag<- data.frame(pcyn_frag[,-1], row.names = pcyn_frag [,1])
+pcyn_frag <- as.matrix ((pcyn_frag))
+
+heatmap.2 (pcyn_frag, 
              trace = "none",
              density = "none", 
              col = bluered(100),
@@ -177,7 +372,123 @@ light_harvesting_t1 <- as.matrix ((light_harvesting_t1))
              colsep=c(1,4,6,8,10),
              sepcolor = "black",
              sepwidth = c(0.02, 0.02))
+
+
+#Cluster heatmap
+pcyn<- dplyr::filter (all_MCL_t1, grepl('clust_1820 ', name))
+pcyn_1 <- pcyn[c(3:13)]
+pcyn_1 <- data.frame(pcyn_1[,-1], row.names = pcyn_1 [,1])
+pcyn_1 <- as.matrix ((pcyn_1))
+heatmap.2 (pcyn_1, 
+             trace = "none",
+             density = "none", 
+             col = bluered(100),
+             cexRow = 0.5, 
+             cexCol =1,
+             margins = c(8,20),
+             scale = "row" ,
+             dendrogram = 'none',  
+             Colv = FALSE, 
+             Rowv = FALSE,
+             keysize = 1,
+             colsep=c(1,4,6,8,10),
+             sepcolor = "black",
+             sepwidth = c(0.02, 0.02))
+
+
+###PCYN_ORF abundance##
+PCYN_ORF_abundance <- dplyr::filter (all_ORF, grepl('clust_1820 ', name)) 
+
+PCYN_ORF_abundance$scaledtotal <- rowMeans(PCYN_ORF_abundance [,c(153:170)])
+
+PCYN_ORF_abundance$total_read <- rowSums(PCYN_ORF_abundance[,c(92:128)])
+
+
+PCYN_ORF_abundance <- PCYN_ORF_abundance [c(47, 91, 179, 180)]
+
+ggplot (data = PCYN_ORF_abundance , aes(x = scaledtotal, y = orf_id), group = Taxa.group )+
+  geom_point(aes(size =scaledtotal))+
+  scale_x_log10()+
+  theme_bw()+
+  ylab("")+
+  xlab ("Relative Abundance")+
+  theme(axis.text.x=element_text(face = "bold", size = 20, color = "black"),
+         axis.title.x=element_text(size=28,face="bold", color = "black"), 
+         axis.text.y=element_text(face = "bold", size = 8, color = "black"),
+         strip.background =element_rect(fill="white"))+
+  facet_grid( Taxa.group ~.)
+
+
+PCYN_clusters_abundance$cluster <- as.character(PCYN_clusters_abundance$cluster)
+lhc_clusters_abundance$lhc_annotation <- lhc_annotation_map[lhc_clusters_abundance$cluster]
+lhc_clusters_abundance$name <- paste(lhc_clusters_abundance$lhc_annotation,'-',lhc_clusters_abundance$cluster)
+
+#lhc_clusters_abundance <- lhc_clusters_abundance[order(lhc_clusters_abundance$name),]
+
+#lhc_clusters_abundance <- lhc_clusters_abundance[order(lhc_clusters_abundance$total_reads),]
+
+lhc_clusters_abundance <- lhc_clusters_abundance[with(lhc_clusters_abundance, order(name, total_reads)),]
+
+
+
+
+
+
+
+
+################
+
+# "clust_3167" = "MetE", meth independent
+# "clust_120" = "MetH", meth dependent
+# "clust_3290" = "CBA1"
+
+
+#heatmap_t1_t5 <- dplyr::filter (all_MCL, grepl("clust_3167 |clust_120 |clust_3290 ", name)) #B12 stuff
+
+heatmap_t1_t5 <- dplyr::filter (all_MCL, grepl("clust_1820 ", name))
+heatmap_t1_t5_v2 <- heatmap_t1_t5[c(148,55:59,61,62,64,65,67, 74:91)]
+
+names(heatmap_t1_t5_v2) <- c("cluster", "ice-edge","T0_A", "T0_B", "T0_C", "T1_noFe_0","T1_Fe_0","T1_noFe_3","T1_Fe_3","T1_noFe_6","T1_Fe_6","A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6" )
+
+heatmap_t1_t5_v2 <- data.frame(heatmap_t1_t5_v2[,-1], row.names = heatmap_t1_t5_v2 [,1])
+
+heatmap.2 (as.matrix(heatmap_t1_t5_v2), 
+             trace = "none",
+             density = "none", 
+             col = bluered(100),
+             breaks = seq(-1.5,1.5, length.out = 101),
+             cexRow = 0.5, 
+             cexCol =1,
+             margins = c(8,20),
+             scale = "row" ,
+             dendrogram = 'none',  
+             Colv = FALSE, 
+             Rowv = FALSE,
+             keysize = 1,
+             colsep=c(1,4,6,8,10,13,16,19,22,25),
+             sepcolor = "black",
+             sepwidth = c(0.02, 0.02))
+
+
+
+heatmap_unclustered_t1(B12_T1, "B12 related", "Pseudo-nitzschia")
+
+#clusters from erin to look at
+#4490, 2147, 3511,8360,10329
+
+
+B12_stuff <- dplyr::filter(all_ORF_sub, grepl('clust_3167 |clust_120 |clust_3290 |clust_4490 |clust_2147 |clust_3511 |clust_8360 |clust_10329 ', name))
+
+volcanoplot_interactive(B12_stuff, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", "B12_iron addition")
+
+volcanoplot_interactive(B12_stuff, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "B12_temperature increase")
+
+
+heatmap(pseudo_MCL,"title", "clust_3167 |clust_120 |clust_3290 |clust_4490 |clust_2147 |clust_3511 |clust_8360 |clust_10329 ")
+
 ```
+
+
 
 Look at overall general trends in the ORF data. 
 Important note: Let's say we're looking at Fe_vs_noFe, if the fold change is positive, it means that there was more of that transcript under Fe than noFe. If the fold change is negative, it means there was more of the ORF in the noFe. From Scott: "For that scenario, it means that there was upregulation of ORF x under high iron compared to low iron.
@@ -2041,10 +2352,10 @@ heatmap_unclustered(PSII_LHC, "clust")
 
 all_LHCs <- dplyr::filter(frag_MCL, grepl("Lhcx|Lhcf|Lhcr|Lhca|clust_332 |clust_1236 |clust_80 |clust_402 |clust_1044 |clust_3282 |clust_1194 |clust_3219 |clust_1084 |clust_3551 |clust_646 |clust_1938 |clust_2549 |clust_3551 |clust_1787 |clust_712 |clust_2256 |clust_3363 ", name))
 
-png("B_.png", width=30*0.75, height=23*0.75, units="cm", res=900)
+#png("B_.png", width=30*0.75, height=23*0.75, units="cm", res=900)
 heatmap_unclustered(all_LHCs, "clust")
 
-dev.off()
+#dev.off()
 
 
 
@@ -2066,20 +2377,12 @@ heatmap_unclustered(mnclust, "clust")
 etc <- dplyr::filter(pseudo_MCL, grepl("clust_2212 |clust_1822 |clust_1668 |clust_1196 " , name))
 heatmap_unclustered(etc, "clust")
 
-
-
-
-
 cytc6 <- dplyr::filter(pseudo_frag_MCL, grepl("clust_1414 " , name))
 heatmap_unclustered(cytc6, "clust")
 
 
-
-
-
 plastocyanin <- dplyr::filter(pseudo_MCL, grepl("clust_1820 |Plastocy" , name))
 heatmap_unclustered(plastocyanin, "clust")
-
 
 
 PSI<- dplyr::filter(pseudo_frag_ORF, grepl("clust_55 " , name))
@@ -2224,22 +2527,36 @@ B12 <- dplyr::filter(pseudo_MCL, grepl("clust_3167 |clust_120 |clust_3290 ", nam
 
 Domoic Acid
 ```{r}
-DABC <- dplyr::filter (all_ORF_sub, grepl('contig_254441_113_1024_+|contig_1174518_67_906_+|contig_732674_1_798_-|contig_633551_118_1041_+|contig_627399_1_787_-|contig_1862_1_732_-|contig_660976_1_1043_+|contig_253357_26_973_+|contig_827413_1_313_-|clust_2216 ' ,name))
+DABC <- dplyr::filter (all_ORF_sub, grepl('contig_254441_113_1024_+|contig_1174518_67_906_+|contig_732674_1_798_-|contig_633551_118_1041_+|contig_627399_1_787_-|contig_1862_1_732_-|contig_660976_1_1043_+|contig_253357_26_973_+|contig_827413_1_313_-' ,orf_id))
 
 
 volcanoplot_interactive(DABC,"temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "temp_6C_vs_0C_DABC")
-
 volcanoplot_interactive(DABC,"Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_DABC")
 
+#DabD |clust_12542 |clust_7510 |clust_2795 |P450 |clust_2216 
 
-DABD <- dplyr::filter(pseudo_frag_ORF, grepl('contig_596040_24_938_-|contig_625510_955_1881_-|contig_625510_3536_4051_+|contig_82244_85_1023_+|contig_596040_947_1648_-|contig_82244_1395_1877_+|contig_680152_23_630_-|contig_1109498_1_752_-|contig_1147495_1_1248_+|contig_625510_1971_2528_-|contig_795490_14_403_-|contig_602505_1_924_+|contig_644544_26_931_+|contig_1338988_954_1898_-|contig_631357_332_904_-|contig_895090_1_705_-|contig_584212_1095_1886_+|contig_708803_1_573_-|contig_1174000_279_929_-|clust_12542 |clust_7510 |clust_2795 |P450 |clust_2216 ' ,name))
+DABD <- dplyr::filter(all_ORF_sub, grepl('contig_596040_24_938_-|contig_625510_955_1881_-|contig_625510_3536_4051_+|contig_82244_85_1023_+|contig_596040_947_1648_-|contig_82244_1395_1877_+|contig_680152_23_630_-|contig_1109498_1_752_-|contig_1147495_1_1248_+|contig_625510_1971_2528_-|contig_795490_14_403_-|contig_602505_1_924_+|contig_644544_26_931_+|contig_1338988_954_1898_-|contig_631357_332_904_-|contig_895090_1_705_-|contig_584212_1095_1886_+|contig_708803_1_573_-|contig_1174000_279_929_-' ,orf_id))
 
-volcanoplot_interactive(DABD,"temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "temp_6C_vs_0C_DABD")
+DABCD<- dplyr::filter(all_ORF_sub,grepl('contig_254441_113_1024_+|contig_1174518_67_906_+|contig_732674_1_798_-|contig_633551_118_1041_+|contig_627399_1_787_-|contig_1862_1_732_-|contig_660976_1_1043_+|contig_253357_26_973_+|contig_827413_1_313_-|contig_596040_24_938_-|contig_625510_955_1881_-|contig_625510_3536_4051_+|contig_82244_85_1023_+|contig_596040_947_1648_-|contig_82244_1395_1877_+|contig_680152_23_630_-|contig_1109498_1_752_-|contig_1147495_1_1248_+|contig_625510_1971_2528_-|contig_795490_14_403_-|contig_602505_1_924_+|contig_644544_26_931_+|contig_1338988_954_1898_-|contig_631357_332_904_-|contig_895090_1_705_-|contig_584212_1095_1886_+|contig_708803_1_573_-|contig_1174000_279_929_-' ,orf_id))
 
-volcanoplot_interactive(DABD,"Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_DABD")
+#DABD_clust <- dplyr::filter(pseudo_frag_ORF, grepl('clust_12542 |clust_2795 ' ,name))
 
-
+volcanoplot_interactive(DABD_clust,"temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "temp_6C_vs_0C_DABD")
+volcanoplot_interactive(DABD_clust,"Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_DABD")
 volcanoplot_interactive(DABD,"Fe_6C_vs_noFe_6C_foldchange", "Fe_6C_vs_noFe_6C_pvalue", " Fe_vs_NoFe_6C_DABD")
+
+
+
+
+all_diatom_fasta <- read.csv ("all_diatom_fasta.csv")
+x <- DABCD$name
+y <- gsub("(.*);.*", "\\1", x)
+DABCD$shortname <- y
+
+DABCD_FASTA <- dplyr::filter(all_diatom_fasta, grepl(paste(DABCD$orf_id,collapse = "|"), orf_id))
+
+write.fasta (sequences = (as.list(DABCD_FASTA$AA_sequence)), names = DABCD_FASTA$orf_id ,file.out = "DAB-CD.fasta")
+
 
 ```
 
@@ -3084,11 +3401,13 @@ LHC sequences for Bev
 ```{r}
 all_LHCs <- dplyr::filter(pseudo_frag_ORF, grepl("Lhcx|Lhcf|Lhcr|Lhca|clust_332 |clust_1236 |clust_80 |clust_402 |clust_1044 |clust_3282 |clust_1194 |clust_3219 |clust_1084 |clust_3551 |clust_646 |clust_1938 |clust_2549 |clust_3551 |clust_1787 |clust_712 |clust_2256 |clust_3363 ", name))
 
+
+
+
+
 x <- all_LHCs$name
 y <- gsub("(.*);.*", "\\1", x)
 all_LHCs$shortname <- y
-
-
 
 volcanoplot_interactive(all_LHCs, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", " Fe_vs_NoFe_rhodopsin_ORFs_alldiatoms")
 
@@ -3151,12 +3470,9 @@ all_diatom_fasta <- read.csv ("all_diatom_fasta.csv")
 plastocyanin_fasta <- dplyr::filter(all_diatom_fasta, grepl(paste(plastocyanin$orf_id,collapse = "|"), orf_id))
 
 
-
-
 write.csv(plastocyanin_fasta, "plastocyanin_fasta.csv")
 
 write.csv(plastocyanin, "plastocyanin_DE.csv")
-
 
 #plastocyanin_fasta <- read.csv("TFG_LHCs_FASTA.csv")
 
@@ -3182,6 +3498,15 @@ How the FASTA file was converted into DF
 
 
 ```{r}
+
+
+
+
+
+
+
+
+
 
 all_diatom_fasta <- read.csv ("all_diatom_fasta.csv")
 
@@ -3552,8 +3877,6 @@ ggplot(DEGO, aes(x = Fe_vs_noFe_de, y = value))+
 GOstats using GO
 ```{r}
 #https://bioconductor.org/packages/release/bioc/vignettes/GOstats/inst/doc/GOstatsForUnsupportedOrganisms.pdf
-
-
 library("GSEABase")
 library("GOstats")
 
@@ -3561,7 +3884,7 @@ GO <- fread("all_tfg_GO.table.txt", select = c("orf_id", "GO_terms"), fill = TRU
 
 all_ORF_GO <- merge(all_ORF, GO, by = "orf_id")  #this puts GO terms in for each ORF that was GO annotated
 
-frag_GO <- dplyr::filter (all_ORF_GO, grepl('Pseudo', Taxa.group))
+frag_GO <- dplyr::filter (all_ORF_GO, grepl('Frag', Taxa.group))
   
 frag_GO_tempFe <- frag_GO [c(1, 179, 3, 9)] #53 = column for KO
 
@@ -3582,7 +3905,7 @@ goframeData_frag <- frag_GO_tempFe_filtered[c(5,6,1)]
 
 # goFrame=GOFrame(goframeData,organism="Homo sapiens")
 # goAllFrame=GOAllFrame(goFrame)
-goFrame=GOFrame(goframeData_frag,organism="Pseudo-nitzschia")
+goFrame=GOFrame(goframeData_frag,organism="Fragilariopsis")
 goAllFrame=GOAllFrame(goFrame)
 
 # we pass this kind of custom information around, we
@@ -3664,37 +3987,198 @@ library("KEGG.db")
 #library("KEGGREST")
 #BiocManager::install("KEGGREST")
 
-
 #load the KEGG data
 kegg<- read.csv("KEGG2.csv", header = TRUE)
 kegg<- kegg[c(1:5)]
+kegg$C <- str_sub(kegg$C, end=-14)
+length(unique(kegg_2$KO))
+
+#this combines all the "C" pathways into one column. 
 kegg_2 <- aggregate(C~KO, kegg, FUN = toString)
 length(unique(kegg$C))
 
-frag_KO <- dplyr::filter (all_ORF, grepl('Pseudo', Taxa.group))
+#this is to reduce the length of the annotations so they plot better
+categorymap <- c(
+"Glycolysis / Gluconeogenesis [, Carbon fixation in photosynthetic organisms [, HIF-1 signaling pathway [, Exosome" ="Carbon fixation in photosynthetic organisms, Glycolysis/Gluconeogenesis",  
+"Oxidative phosphorylation [" = "Oxidative phosphorylation",
+
+"Glyoxylate and dicarboxylate metabolism [, Nitrogen metabolism [, Alanine, aspartate and glutamate metabolism [, Arginine biosynthesis [, Two-component system [, Exosome" = "Nitrogen metabolism, Alanine, aspartate and glutamate metabolism Glyoxylate and dicarboxylate metabolism", 
+
+"Photosynthesis [, Photosynthesis proteins" = "Photosynthesis", 
+
+"Proteasome [, Peptidases, Proteasome" = "Proteasome, Peptidases", 
+
+"Ribosome [, Ribosome" = "Ribosome", 
+
+"Ribosome [" = "Ribosome", 
+
+"RNA transport [, Transfer RNA biogenesis, Messenger RNA biogenesis, Translation factors, Exosome" = "RNA transport, RNA biogenesis", 
+
+"RNA degradation [, Mitochondrial biogenesis, Mitochondrial biogenesis, Chaperones and folding catalysts, Transporters, Exosome, Exosome, Exosome" = "RNA degradation",
+
+"RNA transport [, Ribosome biogenesis in eukaryotes [, Transfer RNA biogenesis, Messenger RNA biogenesis, Ribosome biogenesis, Ribosome biogenesis, Chromosome and associated proteins, Chromosome and associated proteins, GTP-binding   protein, Exosome" = "RNA transport, Ribosome biogenesis, RNA biogenesis",
+
+"Chromosome and associated proteins, Exosome" = "Chromosome and associated proteins, Exosome", 
+
+"Peroxisome [" = "Peroxisome",
+
+"Nicotinate and nicotinamide metabolism [" = "Nicotinate and nicotinamide metabolism", 
+
+"Oxidative phosphorylation [" = "Oxidative phosphorylation",
+
+"Oxidative phosphorylation [, Two-component system [, Mitochondrial biogenesis" = "Oxidative phosphorylation, Mitochondrial biogenesis",
+
+"Purine metabolism [, Pyrimidine metabolism [, RNA polymerase [, Transcription machinery" = "Purine/Pyrimidine metabolism, RNA polymerase, Transcription machinery",
+
+"Protein export [" = "Protein export",
+
+"Chaperones and folding catalysts" = "Chaperones and folding catalysts",
+
+"Protein kinases, Transcription machinery, Chromosome and associated proteins, Chromosome and associated proteins, Chromosome and associated proteins, Chromosome and associated proteins, Chromosome and associated proteins, Chromosome and associated proteins, Chromosome and associated proteins" = "Protein kinases, Transcription machinery, Chromosome and associated proteins", 
+  
+"Pyruvate metabolism [, Propanoate metabolism [, Fatty acid biosynthesis [, Aflatoxin biosynthesis [, AMPK signaling pathway [" = "Pyruvate/Propanoate metabolism, fatty acid biosynthesis", 
+
+"Ribosome biogenesis in eukaryotes [, Ribosome biogenesis" = "Ribosome biogenesis", 
+
+"RNA degradation [, Mitochondrial biogenesis, Chaperones and folding catalysts, Exosome, Exosome, Exosome, Exosome, Exosome" = "RNA degradation", 
+ 
+"RNA transport [, Ribosome biogenesis in eukaryotes [, Transfer RNA biogenesis, Messenger RNA biogenesis, Ribosome biogenesis, Ribosome biogenesis, Chromosome and associated proteins, Chromosome and associated proteins, GTP-binding protein, Exosome" = "Ribosome biogenesis, RNA transport", 
+
+"RNA degradation [, Mitochondrial biogenesis, Chaperones and folding catalysts, Exosome, Exosome, Exosome, Exosome, Exosome" = "RNA degradation", 
+
+"Glycolysis / Gluconeogenesis [, Citrate cycle (TCA cycle) [, Pyruvate metabolism [, Glyoxylate and dicarboxylate metabolism [, Propanoate metabolism [, Glycine, serine and threonine metabolism [, Valine, leucine and isoleucine degradation [, Exosome" = "Glycolysis/Gluconeogenesis, Citrate cycle (TCA cycle)", 
+
+"Cysteine and methionine metabolism [" = "Cysteine and methionine metabolism, Amino acid biosynthesis", 
+
+"Pentose phosphate pathway [, Purine metabolism [" = "Pentose phosphate pathway, Purine metabolism, Carbon metabolism", 
+
+"Sulfur metabolism [, Purine metabolism [, Selenocompound metabolism [, Monobactam biosynthesis [" =  "Sulfur metabolism, Purine metabolism, Selenocompound metabolism", 
+
+"Cysteine and methionine metabolism [, Protein phosphatase and associated proteins, Exosome" = "Cysteine and methionine metabolism, Amino acid biosynthesis",
+
+"Citrate cycle (TCA cycle) [, Glyoxylate and dicarboxylate metabolism [" = "Citrate cycle (TCA cycle), Glyoxylate and dicarboxylate metabolism", 
+
+"Proteasome [, Peptidases, Membrane trafficking, Proteasome" = "Proteasome", 
+
+"AMPK signaling pathway [, Translation factors, Exosome" = "AMPK signaling pathway", 
+
+"RNA transport [, Messenger RNA biogenesis, Messenger RNA biogenesis, Translation factors, Exosome, Exosome" = "RNA transport",
+
+"mRNA surveillance pathway [, MAPK signaling pathway - fly [, TGF-beta signaling pathway [, Hippo signaling pathway [, Hippo signaling pathway -fly [, Sphingolipid signaling pathway [, PI3K-Akt signaling pathway [, AMPK signaling pathway [, Cell cycle - yeast [, Meiosis - yeast [, Oocyte meiosis [, Tight junction [, Protein phosphatase and associated proteins, Chromosome and associated proteins, Exosome" = "mRNA surveillance pathway, MAPK signaling pathway", 
+
+"mRNA surveillance pathway [, Hippo signaling pathway [, cAMP signaling pathway [, cGMP - PKG signaling pathway [, Regulation of actin cytoskeleton [, Meiosis - yeast [, Oocyte meiosis [, Focal adhesion [, Protein phosphatase and associated proteins, Transcription machinery, Spliceosome, Messenger RNA biogenesis" = "mRNA surveillance pathway", 
+
+"Membrane trafficking, GTP-binding protein, Exosome, Exosome, Exosome" = "Membrane trafficking, Exosome", 
+
+"Ras signaling pathway [, Endocytosis [, Phagosome [, Membrane trafficking, Membrane trafficking, GTP-binding protein, Exosome, Exosome, Exosome, Exosome" = "Ras signaling pathway, Membrane trafficking, Endocytosis", 
+
+"GTP-binding protein" = "GTP-binding protein", 
+
+"Membrane trafficking" = "Membrane trafficking", 
+
+"Messenger RNA biogenesis, Exosome, Exosome, Exosome" = "RNA biogenesis, Exosome", 
+
+"Sulfur metabolism [, Cysteine and methionine metabolism [" = "Sulfur metabolism, Cysteine and methionine metabolism", 
+
+"Glycolysis / Gluconeogenesis [, Carbon fixation in photosynthetic organisms [, Exosome" = "Carbon fixation in photosynthetic organisms, Glycolysis/Gluconeogenesis", 
+
+"Glutathione metabolism [, Peptidases" = "Glutathione metabolism, Peptidases", 
+
+"Pentose phosphate pathway [, Pentose and glucuronate interconversions [, Carbon fixation in photosynthetic organisms [" = "Carbon fixation in photosynthetic organisms, Pentose phosphate pathway",
+
+"Oxidative phosphorylation [, Photosynthesis [, Photosynthesis proteins" = "Photosynthesis",
+
+"Oxidative phosphorylation [, mTOR signaling pathway [, Phagosome [" = "Oxidative phosphorylation, mTOR signaling", 
+
+"Translation factors" = "Translation factors", 
+
+"Porphyrin and chlorophyll metabolism [" = "Porphyrin and chlorophyll metabolism", 
+
+"Lysosome [, Transporters" = "Lysosome, Transporters, Mineral absorption", 
+
+"Glycolysis / Gluconeogenesis [, Pentose phosphate pathway [, Fructose and mannose metabolism [, Carbon fixation in photosynthetic organisms [, Methane metabolism [" = "Carbon fixation in photosynthetic organisms, Pentose phosphate pathway",
+
+"Sulfur metabolism [, Cysteine and methionine metabolism [" = "Sulfur metabolism, Cysteine and methionine metabolism"
+) 
+  
+
+
+
+
+#then choose only the pathways with >9 unique KOid associated with them
+# pathways<-unique(Frag_tempDE$pathway)
+#  Frag_tempDE_filtered<-data.frame()
+#  for (i in 1:length(pathways)){
+# temp<-base::subset(Frag_tempDE,pathway==pathways[i])
+# if (length(unique(temp$KO))>1)
+#   {Frag_tempDE_filtered<-rbind(Frag_tempDE_filtered,temp)}
+# }
+
+
+
+
+
+
+
+# c<- grid.arrange(a, b, nrow = 1)
+ 
+#I want to see which orfs were used in the analysis/which orfs are associated with enriched GO terms
+# y<- data.frame((sapply(enrichedORFs, '[', seq(max(sapply(enrichedORFs, length))))))
+# y$term <- "photosynthesis"
+# names(y) <- c("orf_id", "term")
+# test <- merge (y, frag_GO, by = c("orf_id"))
+
+
+#test <- frag_GO[unlist(lapply(enrichedORFs, function(x) grep(x, frag_GO$orf_id, fixed = TRUE))),]
+
+#this converts the list above into a dataframe
+#y<- t(sapply(enrichedORFs, '[', seq(max(sapply(enrichedORFs, length)))))
+# 
+# allorfsused <- geneIdUniverse(Over) # this gets list of ORFS used in analysis
+# 
+# y<- data.frame((sapply(allorfsused, '[', seq(max(sapply(allorfsused, length))))))
+# y$placeholder <- "placeholder"
+# ymelt <- melt(y, id.vars="placeholder")
+# ymelt<- na.exclude(ymelt)
+# 
+# 
+# pathways<-unique(test_1$C)
+# 
+# test_2<-data.frame()
+# for (i in 1:length(pathways)){
+#   temp<-base::subset(test_1,C==pathways[i])
+#   if (length(unique(temp$KO.y))>10) {test_2<-rbind(test_2,temp)}
+# }
+# 
+# ggplot(test_2, aes(x = temp_6C_vs_0C_foldchange, y = str_wrap(B,40) , color = str_wrap(temp_6C_vs_0C_de, 20)))+
+#   geom_jitter(alpha=0.4, size = 2,  height = 0.2)+
+#   scale_color_manual(values = c("red", "grey", "red"))+
+#   geom_vline (xintercept = c(0), col = "black", lty = 2, lwd=0.3 )+
+#   #scale_y_discrete(labels = abbreviate)+
+#   theme_bw()
+```
+
+GOstats using KO: Frag
+```{r}
+frag_KO <- dplyr::filter (all_ORF, grepl('Frag', Taxa.group))
 
 #trim down the dataframe to make it easier to look at. 
 frag_KO<- frag_KO[c(47,53, 55, 2, 4, 8, 10 )] 
-
-#frag_pathway_kegg<- merge(frag_pathway_2, kegg, by.x = "KO", by.y = "KO")
-#length(unique(frag_pathway_kegg$KO))
 
 #select only the genes with KO terms associated with them. This is the 'universe'.
 frag_all_KO <- dplyr::filter (frag_KO, grepl('K', KO)) 
 length(unique(frag_all_KO$KO_pathway))
 
-
-##creating a KO dataframe. The GoStats package requires two columns for the 
+##create a KO dataframe. The GoStats package requires two columns for the 
 #KO analysis, a gene ID column and KO number column. The KO number cannot begin with a K. 
 frag_all_KO_universe <- frag_all_KO [c(2,1)]
 frag_all_KO_universe$KO_id <- str_sub(frag_all_KO_universe$KO, start=2)
 frag_all_KO_universe <- frag_all_KO_universe [c(3,2)]
 
 #after having the dataframe in the correct format, we convert it into a 'keggframe' which can be used by GOstats
-keggFrame=KEGGFrame(frag_all_KO_universe,organism="Pseudo-nitzschia")
+keggFrame=KEGGFrame(frag_all_KO_universe,organism="Fragilariopsis")
 
-#Then the keggframe is passed through the KEGG collection to standardize things."we pass this kind of custom information around, we
-#have chosen to support geneSetCollection objects from GSEABase package." 
+#Then the keggframe is passed through the KEGG collection to standardize things."we pass this kind of custom information around, we have chosen to support geneSetCollection objects from GSEABase package." 
 #gsc = gene set collection
 gsc <- GeneSetCollection(keggFrame, setType = KEGGCollection())
 
@@ -3702,11 +4186,8 @@ gsc <- GeneSetCollection(keggFrame, setType = KEGGCollection())
 universe <- names(keggFrame) 
 
 #Now we select a list of ORFs with something interesting (outliers). So, this can be ORFs with DE with iron/temp. in any direction etc. 
-#utliers <- dplyr::filter(frag_all_KO, grepl("-1", temp_6C_vs_0C_de))
-
-outliers<- frag_all_KO[which(frag_all_KO$temp_6C_vs_0C_de <0 ) ,]
+outliers<- frag_all_KO[which(frag_all_KO$Fe_vs_noFe_de <0 ) ,]
   
-
 outliers_list <- split(outliers$KO, outliers$orf_id, drop = TRUE)
 outliers_list <- names(outliers_list) #list of orfs that are outliers (DE, DeUP, DeDown etc)
 
@@ -3724,109 +4205,244 @@ Over <- hyperGTest(params)
 summary(Over)
 hyperG_KO<- data.frame (summary(Over))
 
-#we then select only the pathways with >9 unique KO ID's associated with them
-hyperG_KO_filtered <- hyperG_KO[which(hyperG_KO$Size >4),]
+#we then select only the pathways with >9 ORFs associated with them
+hyperG_KO_filtered <- hyperG_KO[which(hyperG_KO$Size >9),]
 colnames(hyperG_KO_filtered)[1] <- "KO"
 hyperG_KO_filtered$KO <- paste0("K", hyperG_KO_filtered$KO)
 
 #enrichedORFs <- geneIdsByCategory(Over) #this gets the genes involved in the 'count'/outliers
-#converts the list into a dataframe
-#enrichedORFs_df<- data.frame((sapply(enrichedORFs, '[', seq(max(sapply(enrichedORFs, length))))))
-
 
 allORFs <- geneIdUniverse(Over) # this gets list of all ORFS used in analysis
-allORFs_df<- data.frame((sapply(allORFs, '[', seq(max(sapply(allORFs, length))))))
+allORFs_df<- data.frame((sapply(allORFs, '[', seq(max(sapply(allORFs, length))))))#convert this list into DF
 
 allORFs_df$placeholder <- "placeholder"
 
-####````` Segway````## delete after
-testest <- allORFs_df[538]
-testest <- na.exclude(testest)
-names(testest) <- "orf_id"
-
-testtest_2 <- merge (hyperG_KO_filtered, frag_all_KO, by ="KO")
-length(unique(testtest_2$KO_pathway))
-#testtest_3 <- dplyr::filter(frag_KO, grepl("Ribosome", KO_pathway))
-
-#``````````````#
-
 allORFs_df <- melt(allORFs_df, id.vars="placeholder")
-allORFs_df<- na.exclude(allORFs_df)
+allORFs_df<- na.exclude(allORFs_df)#put the df in long format 
 names(allORFs_df)<- c("placeholder", "KO", "orf_id")
 allORFs_df$KO <- str_sub(allORFs_df$KO, start=2)
-allORFs_df$KO <- paste0("K", allORFs_df$KO)
-
+allORFs_df$KO <- paste0("K", allORFs_df$KO)#fix the KO number. 
 length(unique(allORFs_df$KO))
 
-test <- merge(allORFs_df, hyperG_KO_filtered, by = c("KO"))
-length(unique(test$KO))
-test_2 <- merge(test, frag_all_KO, by = c("KO", "orf_id"))
-length(unique(test_2$KO))
-test_3 <- merge(test_2, kegg_2, by = c ("KO"))
+#now this df includes ALL of the orfs/KOs used in the analysis. But we want a cut off of >9 ORFs per KO
+#so, we merge the dataframes to only select for KOs with >9 ORFs
 
-length(unique(test_3$KO))
+DE_orfs <- merge(allORFs_df, hyperG_KO_filtered, by = c("KO"))
+length(unique(DE_orfs$KO))
+DE_orfs_2 <- merge(DE_orfs, frag_all_KO, by = c("KO", "orf_id"))
+DE_orfs_3 <- merge(DE_orfs_2, kegg_2, by = c ("KO")) #then we megrge with kegg dataframe to get annotation and DE
+
+#then we make dataframes for all the enriched pathways (temp and fe) and export them as .csv so we don't have to do enrichment every time. 
+#Frag_temp_posDE <- DE_orfs_3 
+#Frag_temp_posDE$DE <- "pos_temp"
+
+Frag_Fe_negDE <- DE_orfs_3 
+Frag_Fe_negDE$DE <- "neg_Fe"
+
+Frag_FeDE <- rbind(Frag_Fe_negDE, Frag_Fe_posDE)
+
+#combine the category map we made with the annotations from the CKegg
+Frag_FeDE$pathway <- categorymap[Frag_FeDE$C]
+
+Frag_FeDE$absFeDE <- abs(Frag_FeDE$Fe_vs_noFe_de)
 
 
-#then choose only the pathways with >9 unique KOid associated with them
+write.csv(file = "Frag_FeDE_KOPathway.csv",Frag_tempDE)
 
-# pathways<-unique(test$KO_pathway)
-# 
-# test_filtered<-data.frame()
-# for (i in 1:length(pathways)){
-#   temp<-base::subset(test,KO_pathway==pathways[i])
-#   if (length(unique(temp$KO))>1) {test_filtered<-rbind(test_filtered,temp)}
-# }
-# 
-# length(unique(test_filtered$KO_pathway))
-
-
-# y = str_wrap(KO_pathway, 80) 
-ggplot(test_3, aes(x = temp_6C_vs_0C_foldchange, y = str_wrap(KO, 70), color = str_wrap(temp_6C_vs_0C_de, 20)))+
-  geom_jitter(alpha=0.4, size = 2,  height = 0.2)+
-  scale_color_manual(values = c("red", "grey", "red"))+
+a<- ggplot(Frag_FeDE, aes(x = Fe_vs_noFe_foldchange, y = str_wrap(pathway), color = str_wrap(absFeDE)))+
+  #geom_point(alpha = 0.6, size =5)+
+  geom_jitter(alpha=0.8, size = 5 ,width = 0,  height = 0.1)+
+  scale_color_manual(values = c("gray", "black"), 
+                     labels = c("non-significant", "significant"))+
+  xlab ("Log2 fold-change")+
+  ylab ("KO Pathway")+
   geom_vline (xintercept = c(0), col = "black", lty = 2, lwd=0.3 )+
-  #scale_y_discrete(labels = abbreviate)+
-  theme_bw()
+  theme_bw()+
+  theme(axis.text.x = element_text(
+            hjust=1, size = 14, face = "bold", color = "black"))+
+  theme(axis.title.x = element_text(
+          size = 20, face = "bold"))+
+  theme(axis.text.y = element_blank())+
+  theme(axis.title.y = element_blank())+
+  #theme(axis.title.y = element_text(
+         # size = 20, face = "bold"))+
+  #theme(axis.text.y = element_text(
+            #hjust=1,size = 12, face = "bold", color="black"))+
+  guides(color=guide_legend(title="Differential Expression"))+
+  theme(legend.title = element_text(color = "black", size = 18), 
+        legend.text = element_text(color = "black", size = 18)) 
+        #legend.position = "top")
 
 
-#I want to see which orfs were used in the analysis/which orfs are associated with enriched GO terms
-y<- data.frame((sapply(enrichedORFs, '[', seq(max(sapply(enrichedORFs, length))))))
-y$term <- "photosynthesis"
-names(y) <- c("orf_id", "term")
-test <- merge (y, frag_GO, by = c("orf_id"))
+b<- ggplot(Frag_FeDE, aes(x = DE, y = str_wrap(pathway)))+
+  geom_point(size = 4, shape = "square")+ 
+  theme_bw()+
+  ylab ("KO Pathway")+
+  xlab (" ")+
+  scale_x_discrete(labels= c("Depleted", "Enriched"))+
+  theme(axis.title.y = element_text(
+         size = 20, face = "bold"))+
+  theme(axis.text.y = element_text(
+            hjust=1,size = 12, face = "bold", color="black"))+
+  theme(axis.text.x = element_text(
+     size =12, color = "black", face = "bold"))+
+    theme(axis.title.x = element_text( size = 20, face = "bold"))
+      
+   
 
 
-#test <- frag_GO[unlist(lapply(enrichedORFs, function(x) grep(x, frag_GO$orf_id, fixed = TRUE))),]
+c<- grid.arrange(b, a, nrow = 1)
 
-#this converts the list above into a dataframe
-#y<- t(sapply(enrichedORFs, '[', seq(max(sapply(enrichedORFs, length)))))
+photosynthesis <- dplyr::filter(Frag_FeDE, grepl("Photosynthesis", C))
 
-allorfsused <- geneIdUniverse(Over) # this gets list of ORFS used in analysis
+photo <- dplyr::filter(frag_ORF,grepl("contig_1077755_1_247_+|contig_1210275_1_754_+|contig_1077660_1_409_+|contig_1181458_415_1194_-", orf_id))
 
-y<- data.frame((sapply(allorfsused, '[', seq(max(sapply(allorfsused, length))))))
-y$placeholder <- "placeholder"
-ymelt <- melt(y, id.vars="placeholder")
-ymelt<- na.exclude(ymelt)
-
-
-pathways<-unique(test_1$C)
-
-test_2<-data.frame()
-for (i in 1:length(pathways)){
-  temp<-base::subset(test_1,C==pathways[i])
-  if (length(unique(temp$KO.y))>10) {test_2<-rbind(test_2,temp)}
-}
-
-ggplot(test_2, aes(x = temp_6C_vs_0C_foldchange, y = str_wrap(B,40) , color = str_wrap(temp_6C_vs_0C_de, 20)))+
-  geom_jitter(alpha=0.4, size = 2,  height = 0.2)+
-  scale_color_manual(values = c("red", "grey", "red"))+
-  geom_vline (xintercept = c(0), col = "black", lty = 2, lwd=0.3 )+
-  #scale_y_discrete(labels = abbreviate)+
-  theme_bw()
 ```
 
+GOstats using KO: Pseudo-nitzschia 
+```{r}
+frag_KO <- dplyr::filter (all_ORF, grepl('Pseudo', Taxa.group))
+
+#trim down the dataframe to make it easier to look at. 
+frag_KO<- frag_KO[c(47,53, 55, 2, 4, 8, 10 )] 
+
+#select only the genes with KO terms associated with them. This is the 'universe'.
+frag_all_KO <- dplyr::filter (frag_KO, grepl('K', KO)) 
+length(unique(frag_all_KO$KO_pathway))
+
+##create a KO dataframe. The GoStats package requires two columns for the 
+#KO analysis, a gene ID column and KO number column. The KO number cannot begin with a K. 
+frag_all_KO_universe <- frag_all_KO [c(2,1)]
+frag_all_KO_universe$KO_id <- str_sub(frag_all_KO_universe$KO, start=2)
+frag_all_KO_universe <- frag_all_KO_universe [c(3,2)]
+
+#after having the dataframe in the correct format, we convert it into a 'keggframe' which can be used by GOstats
+keggFrame=KEGGFrame(frag_all_KO_universe,organism="Pseudo-nitzschia")
+
+#Then the keggframe is passed through the KEGG collection to standardize things."we pass this kind of custom information around, we have chosen to support geneSetCollection objects from GSEABase package." 
+#gsc = gene set collection
+gsc <- GeneSetCollection(keggFrame, setType = KEGGCollection())
+
+#then we specify our univese. this is a list of all the orfs in the frag list that have KO term associated with them.
+universe <- names(keggFrame) 
+
+#Now we select a list of ORFs with something interesting (outliers). So, this can be ORFs with DE with iron/temp. in any direction etc. 
+outliers<- frag_all_KO[which(frag_all_KO$Fe_vs_noFe_de >0 ) ,]
+  
+outliers_list <- split(outliers$KO, outliers$orf_id, drop = TRUE)
+outliers_list <- names(outliers_list) #list of orfs that are outliers (DE, DeUP, DeDown etc)
+
+#then make a GOstat object, which will be used for the KEGG GSEA analysis
+params <- GSEAKEGGHyperGParams(name="TFG_GSEA",
+                              geneSetCollection=gsc,
+                              geneIds = outliers_list,#outliers/up and down reg orfs
+                              universeGeneIds = universe,#all of the ORFs
+                              pvalueCutoff = 0.05,
+                              testDirection = "over"  
+                              ) 
+
+#then perform a hypergeometric test on the KEGG terms in the GOstat object
+Over <- hyperGTest(params)
+summary(Over)
+hyperG_KO<- data.frame (summary(Over))
+
+#we then select only the pathways with >9 ORFs associated with them
+hyperG_KO_filtered <- hyperG_KO[which(hyperG_KO$Size >9),]
+colnames(hyperG_KO_filtered)[1] <- "KO"
+hyperG_KO_filtered$KO <- paste0("K", hyperG_KO_filtered$KO)
+
+#enrichedORFs <- geneIdsByCategory(Over) #this gets the genes involved in the 'count'/outliers
+
+allORFs <- geneIdUniverse(Over) # this gets list of all ORFS used in analysis
+allORFs_df<- data.frame((sapply(allORFs, '[', seq(max(sapply(allORFs, length))))))#convert this list into DF
+
+allORFs_df$placeholder <- "placeholder"
+
+allORFs_df <- melt(allORFs_df, id.vars="placeholder")
+allORFs_df<- na.exclude(allORFs_df)#put the df in long format 
+names(allORFs_df)<- c("placeholder", "KO", "orf_id")
+allORFs_df$KO <- str_sub(allORFs_df$KO, start=2)
+allORFs_df$KO <- paste0("K", allORFs_df$KO)#fix the KO number. 
+length(unique(allORFs_df$KO))
+
+#now this df includes ALL of the orfs/KOs used in the analysis. But we want a cut off of >9 ORFs per KO
+#so, we merge the dataframes to only select for KOs with >9 ORFs
+
+DE_orfs <- merge(allORFs_df, hyperG_KO_filtered, by = c("KO"))
+length(unique(DE_orfs$KO))
+DE_orfs_2 <- merge(DE_orfs, frag_all_KO, by = c("KO", "orf_id"))
+DE_orfs_3 <- merge(DE_orfs_2, kegg_2, by = c ("KO")) #then we megrge with kegg dataframe to get annotation and DE
+
+#then we make dataframes for all the enriched pathways (temp and fe) and export them as .csv so we don't have to do enrichment every time. 
+#Pn_temp_posDE <- DE_orfs_3 
+#Pn_temp_posDE$DE <- "pos_temp"
+length(unique(Pn_temp_posDE$KO))
+
+Pn_Fe_posDE <- DE_orfs_3 
+Pn_Fe_posDE$DE <- "pos_Fe"
 
 
+Pn_FeDE <- rbind(Pn_Fe_negDE, Pn_Fe_posDE)
+
+#combine the category map we made with the annotations from the CKegg
+Pn_FeDE$pathway <- categorymap[Pn_FeDE$C]
+
+Pn_FeDE$absFeDE <- abs(Pn_FeDE$Fe_vs_noFe_de)
+
+
+write.csv(file = "Pn_FeDE_KOPathway.csv",Pn_FeDE)
+
+a<- ggplot(Pn_FeDE, aes(x = Fe_vs_noFe_foldchange, y = str_wrap(pathway), color = str_wrap(absFeDE)))+
+  #geom_point(alpha = 0.6, size =5)+
+  geom_jitter(alpha=0.8, size = 5 ,width = 0,  height = 0.1)+
+  scale_color_manual(values = c("gray", "black"), 
+                     labels = c("non-significant", "significant"))+
+  xlab ("Log2 fold-change")+
+  ylab ("KO Pathway")+
+  geom_vline (xintercept = c(0), col = "black", lty = 2, lwd=0.3 )+
+  theme_bw()+
+  theme(axis.text.x = element_text(
+            hjust=1, size = 14, face = "bold", color = "black"))+
+  theme(axis.title.x = element_text(
+          size = 20, face = "bold"))+
+  theme(axis.text.y = element_blank())+
+  theme(axis.title.y = element_blank())+
+  #theme(axis.title.y = element_text(
+         # size = 20, face = "bold"))+
+  #theme(axis.text.y = element_text(
+            #hjust=1,size = 12, face = "bold", color="black"))+
+  guides(color=guide_legend(title="Differential Expression"))+
+  theme(legend.title = element_text(color = "black", size = 18), 
+        legend.text = element_text(color = "black", size = 18)) 
+        #legend.position = "top")
+
+
+b<- ggplot(Pn_FeDE, aes(x = DE, y = str_wrap(pathway)))+
+  geom_point(size = 4, shape = "square")+ 
+  theme_bw()+
+  ylab ("KO Pathway")+
+  xlab (" ")+
+  scale_x_discrete(labels= c("Depleted", "Enriched"))+
+  theme(axis.title.y = element_text(
+         size = 20, face = "bold"))+
+  theme(axis.text.y = element_text(
+            hjust=1,size = 12, face = "bold", color="black"))+
+  theme(axis.text.x = element_text(
+     size =12, color = "black", face = "bold"))+
+    theme(axis.title.x = element_text( size = 20, face = "bold"))
+      
+
+c<- grid.arrange(b, a, nrow = 1)
+
+
+
+ribosome <- dplyr::filter(all_ORF, grepl("Ribosom|ribosom", KO_pathway))
+ribosome_2 <- dplyr::filter(ribosome, grepl("Frag", Taxa.group))
+
+Pn_tempDE_KOPathway <- read.csv("Pn_tempDE_KOPathway.csv", header=TRUE)
+PN <- dplyr::filter(Pn_tempDE_KOPathway, grepl("sulfur|Sulf",pathway))
+PN2 <- merge(PN, pseudo_ORF, by = "orf_id")
+```
 
 
 
@@ -3856,5 +4472,11 @@ ggplot(frag_fe_enrich, aes(y = Genes.in.list, x = Functional.Category))+
 coord_flip()+
   theme_bw()
         
+```
+
+rhodopsin play. delete after
+```{r}
+rhodopsin <- dplyr::filter(pseudo_frag_ORF, grepl("rhodopsin|Rhodopsin|clust_1548 ", name))
+"clust_231" = "Rhodopsin_1", "clust_1548" = "Rhodopsin_2"
 ```
 
