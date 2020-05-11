@@ -19,7 +19,7 @@ library(htmlwidgets)
 library(VennDiagram)
 library(forcats)
 library(caroline)
-#library(edgeR)
+library(edgeR)
 library(data.table)
 library(stringi)
 library(seqinr)
@@ -31,7 +31,6 @@ library(rgl)
 library(calibrate)
 #library(manta)
 ```
- 
  
 Upload ORF  data
 ```{r message=FALSE, warning=FALSE, include=FALSE}
@@ -56,7 +55,6 @@ pseudo_frag_ORF <- dplyr::filter (all_ORF_sub, grepl('Pseudo-nit|Fragilariopsis'
 #all_diatoms_ORF <- dplyr::filter (all_ORF_sub, grepl('Pseudo-nit|Fragilariopsis|Diatom',Taxa.group))
 ```
 
-
 upload MCL cluster data
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 #do the same for the MCL dataset
@@ -69,7 +67,6 @@ frag_MCL <- dplyr::filter (all_MCL_sub, grepl('Fragilariopsis', Taxa.group))
 pseudo_MCL <- dplyr::filter (all_MCL_sub, grepl('Pseudo-nit', Taxa.group))
 pseudo_frag_MCL <- dplyr::filter (all_MCL_sub, grepl('Pseudo-nit|Fragilariopsis', Taxa.group))
 ```
-
 
 Piechart for number of DE transcrips  
 ```{r}
@@ -122,8 +119,7 @@ pie(slices,
 #dev.off()
 ```
 
-
-T1_LHCs
+LHCs_Figure3
 ```{r}
 #load the LHC annotations from BEV
 lhc_annotations <- read.csv("LHC_annotation_bev.csv", header=T)
@@ -137,7 +133,7 @@ names(all_MCL_t1) <- c("cluster","taxa","name", "ice-edge","T0_A", "T0_B", "T0_C
 ##.............................###
 
 ##############LHCs##############
-
+#LHCr-cluster_3363
 #assign Bev's annotations to TFG LHC clusters
 #first make a map of all the LHC clusters to  manually asign them an LHC annotation
 all_MCL_t1$cluster <- as.character(all_MCL_t1$cluster)
@@ -152,7 +148,7 @@ lhc_annotation_map <- c("clust_1044" = "LHCf_III",
                         "clust_3219" = "LHCr", 
                         "clust_3282" = "LHCf_II", 
                         "clust_332"  = "LHCf_I", 
-                        "clust_3363" = "maybe-FCP5", 
+                        "clust_3363" = "LHCr", 
                         "clust_3551" = "LHCr", 
                         "clust_402"  = "LHCf_I", 
                         "clust_646"  = "LHCz",
@@ -216,7 +212,7 @@ LHC_t1_t5_v2 <- LHC_t1_t5[c(47, 48, 55:59,61,62,64,65,67, 74:91)]
 
 names(LHC_t1_t5_v2) <- c("Taxa", "cluster", "ice-edge","T0_A", "T0_B", "T0_C", "T1_noFe_0","T1_Fe_0","T1_noFe_3","T1_Fe_3","T1_noFe_6","T1_Fe_6","A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6" )
 
-Frag_LHCs <- dplyr::filter(LHC_t1_t5_v2, grepl("Pseudo-nitzschia", Taxa))
+Frag_LHCs <- dplyr::filter(LHC_t1_t5_v2, grepl("Frag", Taxa))
 
 Frag_LHCs$cluster <- as.character(Frag_LHCs$cluster)
 Frag_LHCs$lhc_annotation <- lhc_annotation_map[Frag_LHCs$cluster]
@@ -230,7 +226,7 @@ heatmap.2 (as.matrix(Frag_LHCs_2),
              trace = "none",
              density = "none", 
              col = bluered(100),
-             #breaks = seq(-1,1, length.out = 101),
+             breaks = seq(-2.5,2.5, length.out = 101),
           # symbreaks = FALSE,#changes the scale of the color key
              cexRow = 0.5, 
              cexCol =1,
@@ -249,16 +245,16 @@ heatmap.2 (as.matrix(Frag_LHCs_2),
 
 
 ###T1 and T5 LHCs together_V2####
-
-
 LHC_t1_t5 <- dplyr::filter (all_MCL, grepl("light harvesting|LHC|Lhc|lhc|harvesting|clust_1044 |clust_1084 |clust_1194 |clust_1236 |clust_1787 |clust_1938 |clust_2256 |clust_2549 |clust_1820 |clust_3219 |clust_3282 |clust_332 |clust_3363 |clust_3551 |clust_402 |clust_646 |clust_712 |clust_80 ", name))
 LHC_t1_t5_v2 <- LHC_t1_t5[c(148,55:59,61,62,64,65,67, 74:91)]
 
 names(LHC_t1_t5_v2) <- c("cluster", "ice-edge","T0_A", "T0_B", "T0_C", "T1_noFe_0","T1_Fe_0","T1_noFe_3","T1_Fe_3","T1_noFe_6","T1_Fe_6","A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6" )
 
-LHC_t1_t5_v2 <- data.frame(LHC_t1_t5_v2[,-1], row.names = LHC_t1_t5_v2 [,1])
+LHC_t1_t5_v3 <- dplyr::filter (LHC_t1_t5_v2, grepl("Fragilario", cluster))
 
-heatmap.2 (as.matrix(LHC_t1_t5_v2), 
+LHC_t1_t5_v3 <- data.frame(LHC_t1_t5_v3[,-1], row.names = LHC_t1_t5_v3 [,1])
+
+heatmap.2 (as.matrix(LHC_t1_t5_v3), 
              trace = "none",
              density = "none", 
              col = bluered(100),
@@ -336,13 +332,90 @@ volcanoplot_interactive(lhc_volcano_t5, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pva
 volcanoplot_interactive(lhc_volcano_t5, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "pcyn_temp")
 
 volcanoplot_interactive(lhc_volcano_t5, "int_fe_temp_6C_vs_0C_foldchange", "int_fe_temp_6C_vs_0C_pvalue", "pcyn_temp")
+```
+
+nitrogen stuff
+```{r}
+#nitrogen <- dplyr::filter(all_MCL, grepl('clust_411 |clust_417 |clust_991 ', name))
+nitrogen <- dplyr::filter(all_MCL, grepl('clust_411 ', name))
+nitrogen_1 <- nitrogen[,c(48, 47, 148,56:58, 74:91)] 
+nitrogen_1 <- dplyr::filter(nitrogen_1, grepl('Frag', Taxa.group))
+
+names(nitrogen_1) <- c("cluster", "taxa", "name", "A_initial_initial", "B_initial_initial", "C_initial_initial", "A_noFe_0", "B_noFe_0", "C_noFe_0", "A_Fe_0", "B_Fe_0", "C_Fe_0", "A_noFe_3", "B_noFe_3", "C_noFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_noFe_6", "B_noFe_6", "C_noFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6")
+
+nitrogen_2 <- nitrogen_1 %>%melt (id.vars  = c("taxa", "cluster", "name"))%>% separate(col = variable, into = c("rep", "Fe", "temperature"))
+
+png("Alegend.png", width=30*0.75, height=23*0.75, units="cm", res=900)
+ggplot(nitrogen_2, aes(x = temperature, y = value, shape = Fe))+
+  geom_point(size = 8)+
+  scale_x_discrete(limits=c("initial","0","3","6"), 
+                   labels = c ("initial", "-0.5", "3", "6"))+
+  scale_y_continuous(limits = c(0,0.075))+
+  ylab (expression (paste("NR")))+
+  xlab (expression ("Temperature"~(degree*C)))+
+  scale_shape_manual(name="", 
+                   breaks=c("initial","Fe","noFe"),
+                   values=c(19,24,1))+
+  theme_bw()+
+  theme(axis.text.x=element_text(face = "bold", size = 40, color = "black"),
+        axis.title.x=element_text(size=45,face="bold", color = "black"), 
+        axis.text.y=element_text(face = "bold", size = 40, color = "black"),
+        axis.title.y=element_text(size=50,face="bold", color = "black"))+
+  theme(panel.grid = element_blank(), legend.text = element_text(size=15))+
+  guides(shape=guide_legend(override.aes = list(size=9)))+
+   theme(legend.position = "top")
+dev.off()
+
+nitrogen <- dplyr::filter(all_ORF_sub, grepl('nitrate|Nitrate', name))
+volcanoplot_interactive(nitrogen, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "pcyn_temp")
+
+```
 
 
 
-########################################################
-########################################################
-########################################################
+deleteafter
+```{r}
+isip1 <- dplyr::filter(all_MCL, grepl('clust_1814 |clust_343 |clust_1154 |clust_974 ', name))
 
+isip1 <- dplyr::filter(all_ORF_sub, grepl('clust_1814 |clust_343 |clust_1154 |ISIP', name))
+
+
+isip1 <- dplyr::filter(all_ORF_sub, grepl('clust_1814 ', name))
+volcanoplot_interactive(isip1, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "pcyn_temp")
+
+volcanoplot_interactive(isip1, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", "pcyn_Fe")
+
+
+# isip1$scaledtotal <- rowMeans(isip1 [,c(4:21)])
+# 
+# isip1$total_read <- rowSums(isip1[,c(4:21)])
+# 
+# ggplot (data = isip1 , aes(x = total_read, y = orf_id, size = total_read*4))+
+#   geom_point(aes(size =total_read*5))+
+#   #scale_x_log10()+
+#   theme_bw()+
+#   ylab("")+
+#   xlab ("Relative Abundance")+
+#   theme(axis.text.x=element_text(face = "bold", size = 20, color = "black"),
+#          axis.title.x=element_text(size=28,face="bold", color = "black"), 
+#          axis.text.y=element_text(face = "bold", size = 8, color = "black"),
+#          strip.background =element_rect(fill="white"))
+
+volcanoplot_interactive(isip1, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", "pcyn_Fe")
+
+petF <- dplyr::filter(all_ORF_sub, grepl('clust_1452 |contig_741377_290_673_-|contig_1334655_1094_1393_+|contig_851292_25_359_-|contig_607708_506_943_+|contig_1157730_229_528_-', name))
+
+
+
+petF <- dplyr::filter(all_ORF_sub, grepl('contig_1330112_2528_2827_+|contig_851292_25_359_-|contig_1192188_676_975_-|contig_1205437_103_402_-|contig_1146257_3759_4057_-|contig_1007278_1488_1737_+|contig_695146_62_361_-|contig_1007745_8181_8480_|contig_1236417_28_301_-|contig_1157730_229_528_-|contig_486285_117_397_+|contig_741377_290_673_-|contig_713786_1_274_-|contig_1328545_2333_2632_+', name))
+
+volcanoplot_interactive(isip1, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", "pcyn_Fe")
+
+```
+
+
+Plastocyanin_Figure4
+```{r}
 ##Plastocyanin###
 #Volcanoplot
 pcyn_volcano <- dplyr::filter(all_ORF_sub, grepl('clust_1820 ', name))
@@ -375,6 +448,9 @@ heatmap.2 (pcyn_frag,
 
 
 #Cluster heatmap
+all_MCL_t1 <- all_MCL[,c(48, 47, 148,55:59,61,62,64,65,67)] #no T0
+names(all_MCL_t1) <- c("cluster","taxa","name", "ice-edge","T0_A", "T0_B", "T0_C", "T1_noFe_0","T1_Fe_0","T1_noFe_3","T1_Fe_3","T1_noFe_6","T1_Fe_6")
+
 pcyn<- dplyr::filter (all_MCL_t1, grepl('clust_1820 ', name))
 pcyn_1 <- pcyn[c(3:13)]
 pcyn_1 <- data.frame(pcyn_1[,-1], row.names = pcyn_1 [,1])
@@ -433,30 +509,57 @@ lhc_clusters_abundance <- lhc_clusters_abundance[with(lhc_clusters_abundance, or
 
 
 
+```
 
-
-
-################
-
-# "clust_3167" = "MetE", meth independent
-# "clust_120" = "MetH", meth dependent
+B12-FigureS6
+```{r}
+# "clust_3167" = "MetE", methionine independent synthase
+# "clust_120" = "MetH", methionine dependent synthase
 # "clust_3290" = "CBA1"
 
+#clusters from erin to look at
+#4490, 2147, 3511,8360,10329
+#not using 3511.. one ORF in frag, nothing in Pseudo
 
-#heatmap_t1_t5 <- dplyr::filter (all_MCL, grepl("clust_3167 |clust_120 |clust_3290 ", name)) #B12 stuff
+B12_heatmap<- dplyr::filter (all_MCL, grepl("clust_3290 |clust_120 |clust_3167 |clust_4490 |clust_2147 |clust_8360 |clust_10329 |clust_19467 ", name))
 
-heatmap_t1_t5 <- dplyr::filter (all_MCL, grepl("clust_1820 ", name))
-heatmap_t1_t5_v2 <- heatmap_t1_t5[c(148,55:59,61,62,64,65,67, 74:91)]
+B12_heatmap$cluster <- as.character(B12_heatmap$cluster)
+B12_annotation_map <- c("clust_3290" = "1_CBA1_clust_3290",
+                        "clust_120" = "2_MetH_clust_120",
+                        "clust_3167" = "3_MetE_clust_3167",
+                        "clust_19467" = "4_CobT_clust_19467",
+                        "clust_3184" =  "4.2_CobC_clust_3184",
+                        "clust_16330" =  "4.3_CobC_clust_16330",
+                        "clust_4490" = "5_BluB_clust_4490", 
+                        "clust_2147" = "6_CobN_clust_2147", 
+                        "clust_8360" = "7_CobD/Cbib_clust_8360", 
+                        "clust_10329" = "8_CobB/CobQ_clust_10329" )
+                                                                      
 
-names(heatmap_t1_t5_v2) <- c("cluster", "ice-edge","T0_A", "T0_B", "T0_C", "T1_noFe_0","T1_Fe_0","T1_noFe_3","T1_Fe_3","T1_noFe_6","T1_Fe_6","A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6" )
+B12_heatmap$B12_annotation <- B12_annotation_map[B12_heatmap$cluster]
 
-heatmap_t1_t5_v2 <- data.frame(heatmap_t1_t5_v2[,-1], row.names = heatmap_t1_t5_v2 [,1])
 
-heatmap.2 (as.matrix(heatmap_t1_t5_v2), 
+
+B12_heatmap_2 <- B12_heatmap[c(47,148, 149,55:59,61,62,64,65,67:91)]
+
+names(B12_heatmap_2) <- c("taxa", "cluster","annotation", "ice-edge","T0_A", "T0_B", "T0_C", "T1_noFe_0","T1_Fe_0","T1_noFe_3","T1_Fe_3","T1_noFe_6","T1_Fe_6", "A_B12_noFe_0.5C", "B_B12_noFe_0.5C", "A_B12_Fe_0.5C", "B_B12_Fe_0.5C", "C_B12_Fe_0.5C", "C_B12_noFe_0.5C", "A_NoFe_0.5", "B_NoFe_0.5", "C_NoFe_0.5", "A_Fe_0.5", "B_Fe_0.5", "C_Fe_0.5", "A_NoFe_3", "B_NoFe_3", "C_NoFe_3", "A_Fe_3", "B_Fe_3", "C_Fe_3","A_NoFe_6", "B_NoFe_6", "C_NoFe_6", "A_Fe_6", "B_Fe_6", "C_Fe_6" )
+
+#this sorts out the dataframe so when the heatmap is made, the rows are organized by taxa, and then by cluster (easier to split late in powerpoint)
+B12_heatmap_2<- B12_heatmap_2[
+  order(B12_heatmap_2[,1], B12_heatmap_2[,3]),]
+
+#this is because we can't have redundancy in our heatmap row names
+B12_heatmap_2$annotation <- paste(B12_heatmap_2$annotation,B12_heatmap_2$taxa)
+
+B12_heatmap_2 <- B12_heatmap_2[-c(1,2)]
+
+B12_heatmap_3 <- data.frame(B12_heatmap_2[,-1], row.names = B12_heatmap_2[,1])
+
+heatmap.2 (as.matrix(B12_heatmap_3), 
              trace = "none",
              density = "none", 
              col = bluered(100),
-             breaks = seq(-1.5,1.5, length.out = 101),
+             breaks = seq(-3,3, length.out = 101),
              cexRow = 0.5, 
              cexCol =1,
              margins = c(8,20),
@@ -465,26 +568,28 @@ heatmap.2 (as.matrix(heatmap_t1_t5_v2),
              Colv = FALSE, 
              Rowv = FALSE,
              keysize = 1,
-             colsep=c(1,4,6,8,10,13,16,19,22,25),
+             colsep=c(1,4,6,8,10,13,16,19,22,25, 28, 31),
              sepcolor = "black",
              sepwidth = c(0.02, 0.02))
+           
+#this here is just to explore the different cobs and see what's what
+B12_stuff <- dplyr::filter(all_ORF_sub, grepl('clust_4490 |clust_2147 |clust_3511 |clust_8360 |clust_10329 |clust_10011 |cobC|CobC|cobN|CobN|cobU|CobU|cobS|CobS', name))
+
+B12_stuff <- dplyr::filter(all_ORF_sub, grepl('clust_3511 |CobO|cobO|cobP|CobP', name))
+
+B12_stuff <- dplyr::filter(all_ORF_sub, grepl('alpha-ribazole|CobC', name))
+B12_stuff <- dplyr::filter(all_ORF_sub, grepl('adenosylcobinamide-GDP|cobS|CobS|ibazoletransferase', name))
+
+B12_stuff <- dplyr::filter(all_ORF_sub, grepl('CobA|cobA|cobO|CobO|clust_3511 |clust_1492 ', name))
 
 
-
-heatmap_unclustered_t1(B12_T1, "B12 related", "Pseudo-nitzschia")
-
-#clusters from erin to look at
-#4490, 2147, 3511,8360,10329
-
-
-B12_stuff <- dplyr::filter(all_ORF_sub, grepl('clust_3167 |clust_120 |clust_3290 |clust_4490 |clust_2147 |clust_3511 |clust_8360 |clust_10329 ', name))
+B12_stuff <- dplyr::filter (all_MCL_sub, grepl("clust_3290 |clust_120 |clust_3167 |clust_4490 |clust_2147 |clust_8360 |clust_10329 |clust_19467 ", name))
 
 volcanoplot_interactive(B12_stuff, "Fe_vs_noFe_foldchange", "Fe_vs_noFe_pvalue", "B12_iron addition")
 
 volcanoplot_interactive(B12_stuff, "temp_6C_vs_0C_foldchange", "temp_6C_vs_0C_pvalue", "B12_temperature increase")
 
-
-heatmap(pseudo_MCL,"title", "clust_3167 |clust_120 |clust_3290 |clust_4490 |clust_2147 |clust_3511 |clust_8360 |clust_10329 ")
+volcanoplot_interactive(B12_stuff, "int_fe_temp_6C_vs_0C_foldchange", "int_fe_temp_6C_vs_0C_pvalue", "pseudo_frag_interaction")
 
 ```
 
@@ -684,15 +789,15 @@ ven_alldiatoms_sub <- data.frame(ven_alldiatoms_sub[,-1], row.names = ven_alldia
 ven_alldiatoms_sub [is.na(ven_alldiatoms_sub)] <- 0
 
 
-#png(filename="Fe_Ven.png",width=38*0.75, height=30*0.75, units="cm", res = 900)
+png(filename="Fe_Ven_v2.png",width=38*0.75, height=30*0.75, units="cm", res = 900)
 vennDiagram(ven_alldiatoms_sub, 
             include = c ("up", "down"),
             names = c( "Fragilariopsis", "Pseudo-nitzschia"),
-            cex = 2.3, 
+            cex = 2.5, 
             circle.col=c("black", "red"),
-            counts.col=c("black", "darkgray", "black"), 
+            counts.col=c("black", "blue", "black"), 
            main = "Iron")
-#dev.off()
+dev.off()
 #......................
 #Temperature effect
 ven_alldiatoms <-all_MCL [,c(47,48, 143, 144)]
@@ -3480,6 +3585,22 @@ write.fasta (sequences = (as.list(plastocyanin_fasta$AA_sequence)), names = plas
 ```
 
 
+ISIP1 sequences for tree
+```{r}
+all_diatom_fasta <- read.csv ("all_diatom_fasta.csv")
+
+isip1<- dplyr::filter(all_ORF_sub, grepl('isip1|ISIP1|clust_1814 ', name))
+
+isip1_fasta <- dplyr::filter(all_diatom_fasta, grepl(paste(isip1$orf_id,collapse = "|"), orf_id))
+write.csv(isip1_fasta, "isip1_fasta.csv")
+
+isip1_fasta <- read.csv("isip1_fasta.csv")
+
+write.fasta (sequences = (as.list(isip1_fasta$AA_sequence)), names = isip1_fasta$orf_id ,file.out = "isip1.fasta")
+
+```
+
+
 
 How the FASTA file was converted into DF
 ```{r}
@@ -3498,16 +3619,6 @@ How the FASTA file was converted into DF
 
 
 ```{r}
-
-
-
-
-
-
-
-
-
-
 all_diatom_fasta <- read.csv ("all_diatom_fasta.csv")
 
 rhodopsin <- dplyr::filter (all_diatoms_ORF, grepl("clust_1548 ", name))
@@ -4474,9 +4585,4 @@ coord_flip()+
         
 ```
 
-rhodopsin play. delete after
-```{r}
-rhodopsin <- dplyr::filter(pseudo_frag_ORF, grepl("rhodopsin|Rhodopsin|clust_1548 ", name))
-"clust_231" = "Rhodopsin_1", "clust_1548" = "Rhodopsin_2"
-```
 
